@@ -21,14 +21,14 @@ jobs:
     if: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
         with:
           # Go 1.24.7 has a standard-library vulnerability fixed only in 1.25.8
           # (GO-2026-4602); see docs/decisions.md.
           go-version: "1.25"
           check-latest: true
-      - uses: golangci/golangci-lint-action@v8
+      - uses: golangci/golangci-lint-action@v9
         with:
           version: v2.5.0
 
@@ -41,8 +41,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
         with:
           # Go 1.24.7 has a standard-library vulnerability fixed only in 1.25.8
           # (GO-2026-4602); see docs/decisions.md.
@@ -65,8 +65,8 @@ jobs:
     if: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
         with:
           # Go 1.24.7 has a standard-library vulnerability fixed only in 1.25.8
           # (GO-2026-4602); see docs/decisions.md.
@@ -82,8 +82,8 @@ jobs:
     if: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
         with:
           # Go 1.24.7 has a standard-library vulnerability fixed only in 1.25.8
           # (GO-2026-4602); see docs/decisions.md.
@@ -105,8 +105,8 @@ jobs:
     if: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
         with:
           # Go 1.24.7 has a standard-library vulnerability fixed only in 1.25.8
           # (GO-2026-4602); see docs/decisions.md.
@@ -137,8 +137,8 @@ jobs:
       GOOS: ${{ matrix.goos }}
       GOARCH: ${{ matrix.goarch }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
         with:
           # Go 1.24.7 has a standard-library vulnerability fixed only in 1.25.8
           # (GO-2026-4602); see docs/decisions.md.
@@ -150,7 +150,7 @@ jobs:
           go build -trimpath -ldflags "-s -w -X main.version=${{ github.sha }}" \
             -o "dist/stellatinus-installer-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}" ./cmd/stellatinus-installer
           (cd dist && sha256sum * > SHA256SUMS.txt)
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: stellatinus-installer-${{ matrix.goos }}-${{ matrix.goarch }}
           path: dist/
