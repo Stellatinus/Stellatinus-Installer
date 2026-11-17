@@ -1,0 +1,31 @@
+name: "[Test] Check on a real machine"
+description: A check that CI and a cloud session cannot do
+title: "[Test] "
+labels: [test]
+body:
+  - type: textarea
+    id: needed
+    attributes:
+      label: What is needed
+      description: The machine, system version and setup (for example a clean Windows 11 VM, a screen reader, a power cut during an update).
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: textarea
+    id: report
+    attributes:
+      label: What to report back
+      description: Versions, outputs, logs and screenshots the maintainer should paste into this issue.
+    validations:
+      required: true

@@ -1,0 +1,444 @@
+<title>Haedus Setup Mockup</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap">
+<style>
+/* Layout: a rounded setup window with a step sidebar on the left and one question per step on the right, shown on a calm cool-grey ground. */
+:root{
+  --ground:#e6edef; --win:#fbfdfd; --side:#eff4f5; --ink:#14232a; --muted:#566b74; --line:#d3dee2;
+  --accent:#0b6e6e; --accent-ink:#ffffff; --accent-soft:#dcefee;
+  --ok:#17794a; --warn:#a8540a; --bad:#b3261e; --bad-soft:#fbe5e3; --ok-soft:#dff3e8; --warn-soft:#faecd9;
+  --shadow:0 18px 50px rgba(20,35,42,.16);
+  --f-body:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-head:'Space Grotesk','Inter',system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#0b1215; --win:#141d22; --side:#101920; --ink:#e7eff2; --muted:#93a8b1; --line:#26353c;
+  --accent:#43b9b2; --accent-ink:#04201f; --accent-soft:#173333;
+  --ok:#5dd08f; --warn:#f0a35a; --bad:#ff8a80; --bad-soft:#3a1f1d; --ok-soft:#173326; --warn-soft:#3a2b17;
+  --shadow:0 18px 50px rgba(0,0,0,.5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --ground:#0b1215; --win:#141d22; --side:#101920; --ink:#e7eff2; --muted:#93a8b1; --line:#26353c;
+  --accent:#43b9b2; --accent-ink:#04201f; --accent-soft:#173333;
+  --ok:#5dd08f; --warn:#f0a35a; --bad:#ff8a80; --bad-soft:#3a1f1d; --ok-soft:#173326; --warn-soft:#3a2b17;
+  --shadow:0 18px 50px rgba(0,0,0,.5); color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;
+  padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* mockup controls (not part of the installer) */
+.bar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between}
+.bar h1{font:600 15px var(--f-head);margin:0;letter-spacing:.01em}
+.tabs{display:flex;gap:4px;background:var(--side);border:1px solid var(--line);border-radius:999px;padding:3px}
+.tabs button{border:0;background:transparent;padding:6px 14px;border-radius:999px;cursor:pointer;color:var(--muted);font-weight:500}
+.tabs button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.hint{color:var(--muted);font-size:12.5px;margin:0}
+
+/* window */
+.win{background:var(--win);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+.title{display:flex;align-items:center;justify-content:center;height:36px;border-bottom:1px solid var(--line);
+  background:var(--side);font-size:12.5px;color:var(--muted);position:relative}
+.title i{position:absolute;left:14px;display:flex;gap:6px}
+.title i b{width:11px;height:11px;border-radius:50%;background:var(--line);display:block}
+.frame{display:grid;grid-template-columns:230px minmax(0,1fr);min-height:470px}
+aside{background:var(--side);border-right:1px solid var(--line);padding:22px 20px;display:flex;flex-direction:column;gap:20px}
+.brand{display:flex;align-items:center;gap:10px;font:600 18px var(--f-head)}
+.mark{width:28px;height:28px;border-radius:8px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center}
+/* the setup text is not selectable; paths, fields and the advanced log stay copyable */
+.win{-webkit-user-select:none;user-select:none;cursor:default}
+.win input:not([type="checkbox"]):not([type="radio"]),.win .logbox,.win .logbox *{-webkit-user-select:text;user-select:text;cursor:text}
+.win button,.win label,.win summary{cursor:pointer}
+.tools{display:flex;flex-wrap:wrap;gap:10px 26px;align-items:center}
+.tg{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center}
+.tl{font-size:12.5px;font-weight:600;color:var(--muted)}
+.sw{display:flex;gap:6px}
+.sw button{width:26px;height:26px;border-radius:50%;border:2px solid var(--win);box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
+.sw button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--ink)}
+select{border:1px solid var(--line);background:var(--win);border-radius:8px;padding:3px 8px}
+#cust{width:30px;height:26px;border:0;padding:0;background:none;cursor:pointer}
+.mark svg{display:block}
+aside h2{font:600 15px var(--f-head);margin:0}
+aside .sub{color:var(--muted);font-size:12.5px;margin-top:2px}
+ol.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+ol.steps li{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:8px;color:var(--muted);font-size:13px}
+ol.steps li .dot{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line);flex:none;display:grid;place-items:center;font-size:11px}
+ol.steps li.done{color:var(--ok)}
+ol.steps li.done .dot{border-color:var(--ok);background:var(--ok);color:var(--win)}
+ol.steps li.cur{color:var(--ink);font-weight:600;background:var(--win)}
+ol.steps li.cur .dot{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
+.side-foot{margin-top:auto;font-size:11.5px;color:var(--muted)}
+.mini{display:none}
+
+main{display:flex;flex-direction:column;min-width:0;padding:26px clamp(18px,4vw,44px) 20px}
+.screen{flex:1;display:flex;flex-direction:column;gap:14px;max-width:560px;width:100%;margin:0 auto;padding-top:6px}
+.screen h3{font:600 24px/1.2 var(--f-head);margin:0;text-wrap:balance}
+.lead{color:var(--muted);margin:0}
+.why{display:flex;gap:10px;background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--ink)}
+.why b{font-weight:600}
+.field{display:flex;gap:8px}
+.field input{flex:1;min-width:0;border:1px solid var(--line);background:var(--win);border-radius:10px;padding:9px 12px}
+.btn{border:1px solid var(--line);background:var(--win);border-radius:999px;padding:8px 18px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn.link{border:0;background:none;color:var(--accent-text,var(--accent));padding:8px 6px}
+.nav{display:flex;justify-content:space-between;gap:10px;padding-top:14px;margin-top:auto;border-top:1px solid var(--line)}
+.nav .r{display:flex;gap:8px}
+.meta{font-size:12.5px;color:var(--muted)}
+.choice{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;background:var(--win)}
+.opt:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.opt input{margin-top:3px;accent-color:var(--accent)}
+.opt b{display:block;font-weight:600}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;align-self:flex-start}
+.seg button{border:0;background:none;padding:5px 14px;border-radius:999px;cursor:pointer;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+ul.plain{margin:0;padding-left:18px;color:var(--muted)}
+.found{display:flex;gap:10px;align-items:center;background:var(--ok-soft);color:var(--ink);border-radius:10px;padding:9px 12px;font-size:13px}
+
+/* checks */
+ul.checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+ul.checks li{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:10px}
+.ic{width:20px;height:20px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:12px;margin-top:1px;border:1.5px solid var(--line);color:var(--muted)}
+li.ok .ic{background:var(--ok);border-color:var(--ok);color:var(--win)}
+li.bad{border-color:var(--bad);background:var(--bad-soft)}
+li.bad .ic{background:var(--bad);border-color:var(--bad);color:var(--win)}
+li.run .ic{border-color:var(--accent);border-top-color:transparent;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){li.run .ic{animation:none;border-top-color:var(--accent)}.bar-fill{transition:none!important}}
+.checks small{display:block;color:var(--muted)}
+.checks .fix{margin-top:6px}
+
+/* progress */
+.now{font:600 17px var(--f-head);margin:0}
+.pbar{height:12px;background:var(--side);border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;background:var(--accent);width:0;transition:width .15s linear}
+.prow{display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums}
+details.log{border:1px solid var(--line);border-radius:10px;background:var(--side)}
+details.log summary{cursor:pointer;padding:9px 12px;font-weight:500;list-style:none;display:flex;justify-content:space-between}
+details.log summary::-webkit-details-marker{display:none}
+details.log summary::after{content:"▾";color:var(--muted)}
+details.log[open] summary::after{content:"▴"}
+.logbox{margin:0;padding:8px 12px 12px;max-height:170px;overflow:auto;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;border-top:1px solid var(--line);color:var(--muted)}
+.logbox span{display:block;white-space:pre-wrap;word-break:break-all}
+.logbox .t{color:var(--accent-text,var(--accent))}
+
+/* remove */
+.locs{display:flex;flex-direction:column;gap:8px}
+.loc{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+.loc .n{font-weight:600}
+.loc .p{color:var(--muted);font-size:12px;word-break:break-all;grid-column:1}
+.loc .sz{font-variant-numeric:tabular-nums;color:var(--muted);text-align:right}
+.badge{display:inline-block;font-size:11px;font-weight:600;padding:1px 8px;border-radius:999px;margin-left:6px;vertical-align:1px}
+.badge.a{background:var(--accent-soft);color:var(--accent-text,var(--accent))}
+.badge.w{background:var(--warn-soft);color:var(--warn)}
+.loc .ctl{grid-column:2;grid-row:2;justify-self:end}
+.loc.models .mlist{grid-column:1/-1;display:flex;flex-direction:column;border-top:1px solid var(--line);margin-top:6px}
+.mrow{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(150px,auto);gap:4px 12px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+.mrow .mn{font-size:13px;min-width:0;word-break:break-word}
+.mrow .sz{font-size:12.5px}
+.mrow .mc{justify-self:end;text-align:right;font-size:12.5px}
+.lock{color:var(--muted);font-size:12px}
+.mnote{grid-column:1/-1;font-size:12px;color:var(--muted);padding-top:8px}
+@media (max-width:720px){.mrow{grid-template-columns:1fr auto}.mrow .mc{grid-column:1/-1;justify-self:start;text-align:left}}
+.sum{display:flex;justify-content:space-between;gap:10px;background:var(--side);border-radius:10px;padding:10px 12px;font-variant-numeric:tabular-nums}
+.warnbox{background:var(--warn-soft);border-radius:10px;padding:10px 12px;font-size:13px}
+.big{width:56px;height:56px;border-radius:50%;background:var(--ok);color:var(--win);display:grid;place-items:center;font-size:28px}
+
+.notes{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--win)}
+.notes h2{font:600 14px var(--f-head);margin:0 0 6px}
+.notes ul{margin:0;padding-left:18px;color:var(--muted)}
+.notes li{margin:3px 0}
+
+@media (max-width:720px){
+  .frame{grid-template-columns:1fr}
+  aside{border-right:0;border-bottom:1px solid var(--line);padding:14px 16px;gap:8px}
+  ol.steps,.side-foot,aside .sub{display:none}
+  .mini{display:block;color:var(--muted);font-size:12.5px}
+  .loc{grid-template-columns:1fr}.loc .ctl{grid-column:1;grid-row:auto;justify-self:start}.loc .sz{text-align:left}
+}
+</style>
+
+<div class="wrap">
+  <div class="bar">
+    <h1>Haedus Setup · bozza grafica</h1>
+    <div class="tabs" role="group" aria-label="Schermate da vedere">
+      <button id="m-install" aria-pressed="true">Installazione</button>
+      <button id="m-update" aria-pressed="false">Aggiornamento</button>
+      <button id="m-remove" aria-pressed="false">Rimozione</button>
+    </div>
+  </div>
+  <p class="hint">Bozza di aspetto e flusso, con dati di esempio. La cornice vera della finestra è quella del sistema; qui è solo disegnata. Il logo è provvisorio.</p>
+
+  <div class="tools" aria-label="Opzioni della bozza">
+    <div class="tg"><span class="tl">Colore principale</span><div class="sw" id="sw" role="group" aria-label="Colore principale"></div><input type="color" id="cust" aria-label="Colore a scelta" value="#0f9d9a"><span class="meta" id="ctr" aria-live="polite"></span></div>
+    <div class="tg"><span class="tl">Tema</span><div class="seg" id="thm" role="group" aria-label="Tema"><button data-t="system" aria-pressed="true">Come il sistema</button><button data-t="light" aria-pressed="false">Chiaro</button><button data-t="dark" aria-pressed="false">Scuro</button></div></div>
+  </div>
+
+  <div class="win" id="win">
+    <div class="title"><i aria-hidden="true"><b></b><b></b><b></b></i><span id="wtitle">Installazione di Haedus</span></div>
+    <div class="frame">
+      <aside>
+        <div class="brand"><span class="mark" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16"><rect x="1" y="6" width="2.4" height="4" rx="1.2" fill="currentColor"/><rect x="5" y="2" width="2.4" height="12" rx="1.2" fill="currentColor"/><rect x="9" y="4.5" width="2.4" height="7" rx="1.2" fill="currentColor"/><rect x="13" y="6.5" width="2.4" height="3" rx="1.2" fill="currentColor"/></svg></span>Haedus</div>
+        <div><h2 id="stitle">Installazione</h2><div class="sub" id="ssub">Dalla voce al testo, sul tuo computer</div></div>
+        <div class="mini" id="mini"></div>
+        <ol class="steps" id="steps" aria-label="Passi"></ol>
+        <div class="side-foot">Versione 1.4.0 · Stellatinus Installer</div>
+      </aside>
+      <main><div class="screen" id="screen" aria-live="polite"></div></main>
+    </div>
+  </div>
+
+  <div class="notes">
+    <h2>Cosa mostra questa bozza</h2>
+    <ul>
+      <li>Un passo, una domanda, e ogni scelta spiega perché la chiediamo.</li>
+      <li>Modelli IA già presenti: si indicano e si usano dove sono, senza copiarli. Nella rimozione i modelli sono elencati uno per uno: si possono cancellare solo quelli scaricati da Haedus, gli altri restano.</li>
+      <li>Durante l'installazione la barra dice cosa si sta scaricando in parole semplici, e il «Log avanzato» sotto mostra i file veri.</li>
+      <li>Il tema chiaro o scuro segue quello del sistema. Il colore principale viene dal manifesto di ogni app: l'installer ricava da solo le tinte leggibili e controlla il contrasto.</li>
+      <li>Nella finestra il testo non si seleziona con il doppio clic. Restano selezionabili solo i campi dei percorsi e il log avanzato, perché servono per copiare e per l'assistenza.</li>
+      <li>Le verifiche controllano anche i privilegi e i permessi di scrittura, scrivendo davvero un file di prova in ogni cartella. Se una verifica fallisce, il pulsante di correzione ti riporta al passo giusto. Dal menu «Simula un problema» vedi i tre casi.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const S={mode:'install',step:0,lang:'it',models:'existing',sim:'none',notice:null,sc:{start:true,taskbar:false,desktop:true},keepSettings:true,keepOutput:true,keepM1:true,keepM2:true,ack:false,
+  checks:[],prog:0,timer:null,logs:[],stageDone:{},clock:0};
+const FLOW={
+  install:{title:'Installazione',win:'Installazione di Haedus',steps:['Benvenuto','Cartella del programma','Modelli IA','Cartella di output','Collegamenti','Verifiche','Installazione','Fine']},
+  update:{title:'Aggiornamento',win:'Aggiornamento di Haedus',steps:['Novità','Aggiornamento','Fine']},
+  remove:{title:'Rimozione',win:'Rimozione di Haedus',steps:['Conferma','Cosa tenere','Rimozione','Fine']}
+};
+const STAGES={
+  install:{total:9000,list:[
+    {at:0,label:'Sto scaricando il core',logs:['GET haedus-core-1.4.0-win-x64.zip  (212 MB)','sha256 verificato']},
+    {at:35,label:'Sto scaricando il motore di trascrizione',logs:['GET whisper-engine-1.7.2.zip  (96 MB)','sha256 verificato']},
+    {at:65,label:'Sto scaricando il modello vocale',logs:['GET ggml-large-v3-q5.bin  (1,1 GB)','sha256 verificato']},
+    {at:88,label:'Sto preparando i collegamenti',logs:['Scritto registro di installazione','Creato collegamento nel menu Start']},
+    {at:97,label:'Controllo che tutto funzioni',logs:['Avvio di prova: risposta in 0,8 s']}]},
+  update:{total:6500,list:[
+    {at:0,label:'Sto scaricando l\'aggiornamento',logs:['GET haedus-1.4.1-win-x64.zip  (38 MB)']},
+    {at:45,label:'Verifico la firma',logs:['Firma Sigstore valida','Identità: release.yml@refs/tags/v1.4.1','Versione 1.4.1 più nuova della 1.4.0']},
+    {at:65,label:'Conservo la versione precedente',logs:['Copia di 1.4.0 in .previous']},
+    {at:80,label:'Sostituisco i file e riavvio',logs:['Chiuso Haedus','Cartella sostituita','Haedus risponde: versione 1.4.1']}]},
+  remove:{total:5000,list:[
+    {at:0,label:'Sto fermando Haedus',logs:['Haedus chiuso']},
+    {at:25,label:'Sto togliendo il programma',logs:['Rimossi 1.482 file dal registro di installazione','Rimosso il collegamento nel menu Start']},
+    {at:70,label:'Sto sistemando i dati',logs:[]},
+    {at:92,label:'Controllo che non resti nulla',logs:['Nessun file orfano nella cartella del programma']}]}
+};
+function steps(){return FLOW[S.mode].steps}
+function modelsBlock(){
+ const row=(n,sz,mine,key)=>'<div class="mrow"><span class="mn">'+n+(mine?' <span class="badge a">tuo</span>':' <span class="badge w">scaricato da Haedus</span>')+'</span><span class="sz">'+sz+'</span><span class="mc">'+(mine?'<span class="lock">Resta: non l\'ha scaricato Haedus</span>':'<label><input type="checkbox" data-a="keepM" data-k="'+key+'" '+(S['keepM'+key]?'checked':'')+'> Tieni</label>')+'</span></div>';
+ return '<div class="loc models"><span class="n">Modelli IA</span><span class="sz">14,2 GB</span><span class="p">D:\\Modelli\\whisper · 5 modelli</span><div class="mlist">'+row('ggml-large-v3-q5','1,1 GB',false,1)+row('ggml-small-it','0,5 GB',false,2)+row('whisper-large-v3','3,1 GB',true)+row('whisper-medium','1,5 GB',true)+row('canary-1b','8,0 GB',true)+'</div><div class="mnote">Haedus cancella solo i modelli che ha scaricato lui, perché sa quali sono. Gli altri potrebbero servire ad altri programmi, quindi restano dove sono. <button class="btn link" data-a="openf">Apri la cartella</button></div></div>'}
+function scList(){const n=[];if(S.sc.start)n.push('menu Start');if(S.sc.taskbar)n.push('barra delle applicazioni');if(S.sc.desktop)n.push('desktop');return n.length?n.join(', '):'nessuno'}
+function clk(){S.clock+=Math.floor(Math.random()*2)+1;const t=14*3600+32*60+7+S.clock;const h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;return [h,m,s].map(n=>String(n).padStart(2,'0')).join(':')}
+
+function setMode(m){stop();S.mode=m;S.step=0;S.checks=[];S.prog=0;S.logs=[];S.stageDone={};S.ack=false;S.clock=0;
+  for(const k of['install','update','remove'])$('#m-'+k).setAttribute('aria-pressed',String(k===m));render()}
+function go(d){stop();if(d>0)S.notice=null;S.step=Math.max(0,Math.min(steps().length-1,S.step+d));S.prog=0;S.logs=[];S.stageDone={};render()}
+function stop(){if(S.timer){clearInterval(S.timer);S.timer=null}}
+
+function sidebar(){
+  const f=FLOW[S.mode];$('#stitle').textContent=f.title;$('#wtitle').textContent=f.win;
+  $('#mini').textContent='Passo '+(S.step+1)+' di '+f.steps.length+' · '+f.steps[S.step];
+  $('#steps').innerHTML=f.steps.map((n,i)=>{
+    const c=i<S.step?'done':i===S.step?'cur':'';
+    return '<li class="'+c+'"'+(i===S.step?' aria-current="step"':'')+'><span class="dot" aria-hidden="true">'+(i<S.step?'✓':'')+'</span>'+n+'</li>'}).join('');
+}
+function nav(back,next,opt){opt=opt||{};
+  return '<div class="nav"><div>'+(back===false?'':'<button class="btn" data-a="back">'+(back||'Indietro')+'</button>')+'</div><div class="r">'+(opt.extra||'')+
+   (next===false?'':'<button class="btn primary" data-a="next"'+(opt.disabled?' disabled':'')+'>'+(next||'Avanti')+'</button>')+'</div></div>'}
+function why(t){return '<div class="why"><span aria-hidden="true">ℹ</span><span><b>Perché lo chiediamo:</b> '+t+'</span></div>'}
+
+function screen(){
+  const m=S.mode,i=S.step;
+  if(m==='install'){
+    if(i===0)return '<h3>Ti presento Haedus</h3><p class="lead">Trascrive audio e video in testo, sul tuo computer. Ti faccio quattro domande e poi installo tutto.</p>'+
+      '<div class="seg" role="group" aria-label="Lingua"><button data-a="lang" data-v="it" aria-pressed="'+(S.lang==='it')+'">Italiano</button><button data-a="lang" data-v="en" aria-pressed="'+(S.lang==='en')+'">English</button></div>'+
+      '<ul class="plain"><li>Ci vogliono circa 3 minuti.</li><li>Serve un po\' di spazio per i modelli di intelligenza artificiale (circa 1,5 GB).</li><li>Puoi cambiare tutto più tardi dalle Impostazioni.</li></ul>'+nav(false,'Inizia');
+    if(i===1)return notice(1)+'<h3>Dove installo il programma?</h3><p class="lead">È la cartella dove vive Haedus. I tuoi dati restano altrove.</p>'+
+      '<div class="field"><input aria-label="Cartella del programma" value="C:\\Users\\Giacomo\\AppData\\Local\\Haedus"><button class="btn">Sfoglia…</button></div><div class="meta">Servono 310 MB · disponibili 182 GB</div>'+
+      why('così puoi scegliere un disco diverso se il principale è pieno. Non serve essere amministratore.')+nav();
+    if(i===2)return '<h3>Dove sono i modelli IA?</h3><p class="lead">Sono file grandi che Haedus usa per capire la voce.</p>'+
+      '<div class="choice"><label class="opt"><input type="radio" name="mm" value="new" '+(S.models==='new'?'checked':'')+'><span><b>Scaricali per me</b><span class="meta">Li metto in una nuova cartella: 1,1 GB da scaricare.</span></span></label>'+
+      '<label class="opt"><input type="radio" name="mm" value="existing" '+(S.models==='existing'?'checked':'')+'><span><b>Ne ho già, uso questa cartella</b><span class="meta">Li uso dove sono, senza copiarli né riscaricarli.</span></span></label></div>'+
+      (S.models==='existing'?'<div class="field"><input aria-label="Cartella dei modelli" value="D:\\Modelli\\whisper"><button class="btn">Sfoglia…</button></div><div class="found"><span aria-hidden="true">✓</span><span>Trovati 3 modelli compatibili (14,2 GB). Non scarico nulla.</span></div>':
+        '<div class="field"><input aria-label="Cartella dei modelli" value="C:\\Users\\Giacomo\\Haedus\\Modelli"><button class="btn">Sfoglia…</button></div>')+
+      why('un modello pesa da 1 a 3 GB. Se li hai già scaricati per altri programmi, risparmi spazio e tempo. Quella cartella non verrà mai cancellata dalla rimozione.')+nav();
+    if(i===3)return notice(3)+'<h3>Dove salvo le trascrizioni?</h3><p class="lead">I file di testo, i sottotitoli e gli export finiscono qui.</p>'+
+      '<div class="field"><input aria-label="Cartella di output" value="D:\\Trascrizioni"><button class="btn">Sfoglia…</button></div><div class="meta">Disponibili 412 GB</div>'+
+      why('vuoi ritrovare i risultati in un posto tuo, magari sincronizzato. Si può cambiare dalle Impostazioni quando vuoi.')+nav();
+    if(i===4)return '<h3>Dove vuoi trovare Haedus?</h3><p class="lead">Scegli dove aggiungere i collegamenti. Puoi cambiarli più tardi.</p>'+
+      '<div class="choice">'+
+      '<label class="opt"><input type="checkbox" data-a="sc" data-k="start" '+(S.sc.start?'checked':'')+'><span><b>Menu Start</b><span class="meta">Tra tutte le app, per cercarlo e aprirlo da lì.</span></span></label>'+
+      '<label class="opt"><input type="checkbox" data-a="sc" data-k="taskbar" '+(S.sc.taskbar?'checked':'')+'><span><b>Barra delle applicazioni</b><span class="meta">L\'icona fissa in basso, sempre a portata di clic.</span></span></label>'+
+      '<label class="opt"><input type="checkbox" data-a="sc" data-k="desktop" '+(S.sc.desktop?'checked':'')+'><span><b>Desktop</b><span class="meta">Un\'icona sulla scrivania.</span></span></label></div>'+
+      why('sono solo scorciatoie: se le togli, il programma funziona uguale. La rimozione le toglie tutte insieme al resto.')+nav();
+    if(i===5){return '<h3>Controllo che sia tutto a posto</h3><p class="lead">Se qualcosa non va, lo correggi qui e non si installa nulla a metà.</p><ul class="checks" id="checks"></ul>'+
+      '<label class="meta">Simula un problema (solo per la bozza): <select id="simsel">'+[['none','Nessuno'],['priv','Privilegi mancanti'],['perm','Nessun permesso di scrittura'],['space','Spazio insufficiente']].map(o=>'<option value="'+o[0]+'"'+(S.sim===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select></label>'+navChecks()}
+    if(i===6)return progressScreen('Sto installando Haedus','Annulla');
+    if(i===7)return '<div class="big" aria-hidden="true">✓</div><h3>Haedus è pronto</h3><p class="lead">Installato in 8 secondi. Il programma risponde.</p>'+
+      '<div class="locs"><div class="loc"><span class="n">Programma</span><span class="sz">310 MB</span><span class="p">C:\\Users\\Giacomo\\AppData\\Local\\Haedus</span></div>'+
+      '<div class="loc"><span class="n">Modelli IA <span class="badge a">tua cartella</span></span><span class="sz">14,2 GB</span><span class="p">D:\\Modelli\\whisper</span></div>'+
+      '<div class="loc"><span class="n">Trascrizioni</span><span class="sz">vuota</span><span class="p">D:\\Trascrizioni</span></div>'+
+      '<div class="loc"><span class="n">Collegamenti</span><span class="sz"></span><span class="p">'+scList()+'</span></div></div>'+
+      '<div class="nav"><div><button class="btn link" data-a="restart">Rivedi la bozza</button></div><div class="r"><button class="btn">Apri la cartella</button><button class="btn primary">Apri Haedus</button></div></div>';
+  }
+  if(m==='update'){
+    if(i===0)return '<h3>Haedus 1.4.1 è disponibile</h3><p class="lead">Hai la 1.4.0. L\'aggiornamento pesa 38 MB e conserva la versione attuale per tornare indietro.</p>'+
+      '<ul class="plain"><li>Corretto un blocco quando si apre una trascrizione appena finita.</li><li>Il salvataggio dell\'editor non perde più le modifiche.</li><li>Il tuo lavoro, i modelli e le cartelle restano come sono.</li></ul>'+
+      why('l\'aggiornamento è un programma a parte: se Haedus si blocca, non ferma l\'aggiornamento.')+nav(false,'Aggiorna ora',{extra:'<button class="btn" data-a="later">Più tardi</button>'});
+    if(i===1)return progressScreen('Sto aggiornando Haedus','Annulla');
+    if(i===2)return '<div class="big" aria-hidden="true">✓</div><h3>Ora hai la versione 1.4.1</h3><p class="lead">Haedus risponde. La versione 1.4.0 resta salvata per 30 giorni, nel caso serva tornare indietro.</p>'+
+      '<div class="nav"><div><button class="btn link" data-a="restart">Rivedi la bozza</button></div><div class="r"><button class="btn">Torna alla 1.4.0</button><button class="btn primary">Apri Haedus</button></div></div>';
+  }
+  if(m==='remove'){
+    if(i===0)return '<h3>Vuoi togliere Haedus?</h3><p class="lead">Ti faccio vedere cosa verrebbe cancellato prima di toccare qualcosa. I tuoi file non vengono cancellati senza che tu lo scelga.</p>'+
+      '<ul class="plain"><li>Tolgo solo ciò che ho installato io, dal registro dell\'installazione.</li><li>Tengo i tuoi dati, a meno che tu non scelga il contrario.</li><li>Alla fine ti lascio un log di cosa ho fatto.</li></ul>'+nav('Annulla','Continua');
+    if(i===1){const freed=310+(S.keepSettings?0:38)+(S.keepOutput?0:2400)+(S.keepM1?0:1100)+(S.keepM2?0:500);
+      const need=(!S.keepSettings||!S.keepOutput);
+      return '<h3>Cosa vuoi tenere?</h3><p class="lead">Per ogni cartella scegli se tenerla.</p><div class="locs">'+
+      '<div class="loc"><span class="n">Programma</span><span class="sz">310 MB</span><span class="p">C:\\Users\\Giacomo\\AppData\\Local\\Haedus</span><span class="ctl meta">Sempre rimosso</span></div>'+
+      '<div class="loc"><span class="n">Impostazioni e cronologia</span><span class="sz">38 MB</span><span class="p">C:\\Users\\Giacomo\\AppData\\Roaming\\Haedus</span><span class="ctl"><label><input type="checkbox" data-a="keepS" '+(S.keepSettings?'checked':'')+'> Tieni</label></span></div>'+
+      modelsBlock()+
+      '<div class="loc"><span class="n">Trascrizioni <span class="badge w">create da Haedus</span></span><span class="sz">2,4 GB</span><span class="p">D:\\Trascrizioni · 318 file</span><span class="ctl"><label><input type="checkbox" data-a="keepO" '+(S.keepOutput?'checked':'')+'> Tieni</label></span></div></div>'+
+      (S.keepOutput?'':'<div class="warnbox"><b>Attenzione.</b> Vengono cancellati 318 file di trascrizione, senza passare dal cestino. <label><input type="checkbox" data-a="ack" '+(S.ack?'checked':'')+'> Ho capito, cancella</label></div>')+
+      '<div class="sum"><span>Spazio che libero</span><b>'+(freed>=1000?(freed/1000).toFixed(1).replace('.',','):freed)+(freed>=1000?' GB':' MB')+'</b></div>'+
+      nav('Indietro','Rimuovi',{disabled:!S.keepOutput&&!S.ack})}
+    if(i===2)return progressScreen('Sto togliendo Haedus','Interrompi');
+    if(i===3)return '<div class="big" aria-hidden="true">✓</div><h3>Haedus è stato rimosso</h3><p class="lead">Ho tolto il programma'+(S.keepSettings?'':' e le impostazioni')+(S.keepOutput?'':' e le trascrizioni')+((!S.keepM1||!S.keepM2)?' e '+((!S.keepM1&&!S.keepM2)?'2 modelli':'1 modello')+' scaricati da Haedus':'')+'. Tenuti: '+['3 modelli tuoi (12,6 GB)'].concat(S.keepM1?['ggml-large-v3-q5']:[]).concat(S.keepM2?['ggml-small-it']:[]).concat(S.keepSettings?['impostazioni']:[]).concat(S.keepOutput?['trascrizioni']:[]).join(', ')+'.</p>'+
+      '<div class="nav"><div><button class="btn link" data-a="restart">Rivedi la bozza</button></div><div class="r"><button class="btn">Mostra il log</button><button class="btn primary">Chiudi</button></div></div>';
+  }
+  return '';
+}
+const NCHK=6;
+const FIXES={
+  priv:{label:'Riavvia come amministratore'},
+  perm:{label:'Scegli un\'altra cartella di output',go:3,msg:'Non posso scrivere in D:\\Trascrizioni: il tuo utente non ha il permesso. Scegli una cartella dove puoi scrivere, oppure chiedi a chi gestisce il computer di darti il permesso.'},
+  space:{label:'Scegli un altro disco',go:1,msg:'Su C: restano 1,2 GB e ne servono 3,1. Scegli un disco con più spazio per il programma.'}};
+const failIdx=()=>({priv:0,perm:1,space:2}[S.sim]??-1);
+const failKey=()=>S.sim==='none'?null:S.sim;
+function notice(i){return S.notice&&S.notice.step===i?'<div class="warnbox" role="alert"><b>Da correggere.</b> '+S.notice.text+'</div>':''}
+function navChecks(){const all=S.checks.length===NCHK&&S.checks.every(c=>c==='ok');const bad=S.checks.includes('bad');
+  return '<div class="nav"><div><button class="btn" data-a="back">Indietro</button></div><div class="r"><button class="btn primary" data-a="next" '+(all?'':'disabled')+'>'+(bad?'Correggi per continuare':'Installa')+'</button></div></div>'}
+function progressScreen(title,cancel){
+  return '<h3>'+title+'</h3><p class="now" id="now" aria-live="polite"> </p><div class="pbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="pb"><div class="bar-fill" id="fill"></div></div>'+
+   '<div class="prow"><span id="pinfo"></span><span id="ppct">0%</span></div>'+
+   '<details class="log" id="logd"><summary>Log avanzato</summary><div class="logbox" id="logbox" tabindex="0" role="log" aria-label="Log avanzato"></div></details>'+
+   '<div class="nav"><div><button class="btn" data-a="cancel">'+cancel+'</button></div><div class="r"><button class="btn primary" data-a="next" id="pnext" disabled>Avanti</button></div></div>'}
+
+function checkList(){
+  const items=[[S.sim==='priv'?'Privilegi insufficienti':'Privilegi sufficienti',S.sim==='priv'?'Per scrivere in C:\\Program Files servono i diritti di amministratore, e questo programma non li ha.':'Haedus è stato avviato come amministratore'],
+    [S.sim==='perm'?'Nessun permesso di scrittura':'Permesso di scrivere nelle cartelle',S.sim==='perm'?'Non posso scrivere in D:\\Trascrizioni (sola lettura per il tuo utente).':'Ho creato e cancellato un file di prova in programma, modelli e trascrizioni'],
+    [S.sim==='space'?'Spazio libero insufficiente':'Spazio libero sufficiente',S.sim==='space'?'Servono 3,1 GB, ne restano 1,2 GB su C:':'Servono 3,1 GB, ne hai 182 GB'],
+    ['Cartella dei modelli leggibile',S.models==='existing'?'3 modelli compatibili in D:\\Modelli\\whisper':'Verrà creata'],
+    ['Le cartelle non si sovrappongono','Programma, modelli e trascrizioni sono separati'],
+    ['Nessuna installazione precedente','Non ho trovato altre copie di Haedus']];
+  const ul=$('#checks');if(!ul)return;
+  ul.innerHTML=items.map((it,i)=>{const st=S.checks[i];const c=st==='ok'?'ok':st==='bad'?'bad':st==='run'?'run':'';
+    return '<li class="'+c+'"><span class="ic" aria-hidden="true">'+(st==='ok'?'✓':st==='bad'?'!':'')+'</span><span><b>'+it[0]+'</b><small>'+it[1]+'</small>'+
+      (st==='bad'?'<button class="btn fix" data-a="fix" data-k="'+failKey()+'">'+FIXES[failKey()].label+'</button>':'')+'</span></li>'}).join('');
+  const n=$('.nav .primary');if(n){const all=S.checks.length===NCHK&&S.checks.every(c=>c==='ok');n.disabled=!all;n.textContent=S.checks.includes('bad')?'Correggi per continuare':'Installa'}
+}
+function runChecks(){stop();S.checks=[];let i=0;checkList();
+  S.timer=setInterval(()=>{
+    if(i>0&&S.checks[i-1]==='run')S.checks[i-1]='ok';
+    if(i>=NCHK){stop();checkList();return}
+    S.checks[i]=(failIdx()===i)?'bad':'run';
+    if(S.checks[i]==='bad'){stop();checkList();return}
+    i++;checkList();
+  },520)}
+
+function runProgress(){
+  stop();const cfg=STAGES[S.mode];S.prog=0;S.logs=[];S.stageDone={};S.clock=0;
+  const tick=100;const now=$('#now'),fill=$('#fill'),pct=$('#ppct'),info=$('#pinfo'),pb=$('#pb'),lb=$('#logbox'),nx=$('#pnext');
+  function addLog(t,tag){S.logs.push(clk()+'  '+t);lb.insertAdjacentHTML('beforeend','<span><span class="t">'+S.logs[S.logs.length-1].slice(0,8)+'</span>'+S.logs[S.logs.length-1].slice(8).replace(/</g,'&lt;')+'</span>');lb.scrollTop=lb.scrollHeight}
+  S.timer=setInterval(()=>{
+    S.prog=Math.min(100,S.prog+tick/cfg.total*100);
+    const p=S.prog;let idx=0;cfg.list.forEach((s,k)=>{if(p>=s.at)idx=k});
+    cfg.list.forEach((s,k)=>{if(p>=s.at&&!S.stageDone[k]){S.stageDone[k]=1;
+      if(S.mode==='remove'&&k===2){s.logs=['Non toccati: 3 modelli tuoi (12,6 GB) in D:\\Modelli\\whisper'].concat(S.keepM1?['Tenuto: ggml-large-v3-q5.bin']:['Cancellato: ggml-large-v3-q5.bin (1,1 GB)']).concat(S.keepM2?['Tenuto: ggml-small-it.bin']:['Cancellato: ggml-small-it.bin (0,5 GB)']);if(S.keepSettings)s.logs.push('Tenuto: impostazioni e cronologia');else s.logs.push('Cancellati 38 MB di impostazioni');
+        if(S.keepOutput)s.logs.push('Tenuto: trascrizioni (318 file)');else s.logs.push('Cancellati 318 file di trascrizione (2,4 GB)')}
+      if(S.mode==='install'&&k===3){s.logs=['Scritto registro di installazione'].concat(S.sc.start?['Creato collegamento nel menu Start']:[]).concat(S.sc.taskbar?['Aggiunta icona alla barra delle applicazioni']:[]).concat(S.sc.desktop?['Creato collegamento sul desktop']:[]);if(!S.sc.start&&!S.sc.taskbar&&!S.sc.desktop)s.logs.push('Nessun collegamento richiesto')}
+      if(S.mode==='install'&&k===2&&S.models==='existing'){s.label='Controllo i modelli che hai già';s.logs=['Letto D:\\Modelli\\whisper: 3 modelli compatibili','Nessun download: uso i file dove sono']}
+      s.logs.forEach(l=>addLog(l))}});
+    const st=cfg.list[idx];now.textContent=(p>=100?(S.mode==='remove'?'Fatto':'Tutto fatto'):st.label);
+    fill.style.width=p+'%';pb.setAttribute('aria-valuenow',Math.round(p));pct.textContent=Math.round(p)+'%';
+    info.textContent=p>=100?'Operazioni completate':'Operazione '+(idx+1)+' di '+cfg.list.length+(S.mode!=='remove'&&p<100?' · circa '+Math.max(1,Math.round((100-p)/100*cfg.total/1000))+' s':'');
+    if(p>=100){stop();addLog('Completato');nx.disabled=false;nx.textContent='Avanti'}
+  },tick)}
+
+function render(){
+  sidebar();$('#screen').innerHTML=screen();
+  const m=S.mode,i=S.step;
+  if(m==='install'&&i===5)runChecks();
+  if((m==='install'&&i===6)||(m==='update'&&i===1)||(m==='remove'&&i===2))runProgress();
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;
+  if(a==='next')go(1);
+  else if(a==='back'||a==='cancel')go(-1);
+  else if(a==='sc'){S.sc[b.dataset.k]=b.checked}
+  else if(a==='lang'){S.lang=b.dataset.v;render()}
+  else if(a==='restart')setMode(S.mode);
+  else if(a==='later')setMode('install');
+  else if(a==='fix'){const f=FIXES[b.dataset.k];S.sim='none';stop();
+    if(f.go!==undefined){S.notice={step:f.go,text:f.msg};S.step=f.go}render()}
+  else if(a==='keepM'){S['keepM'+b.dataset.k]=b.checked;render()}
+  else if(a==='keepS'){S.keepSettings=b.checked;render()}
+  else if(a==='keepO'){S.keepOutput=b.checked;S.ack=false;render()}
+  else if(a==='ack'){S.ack=b.checked;render()}
+});
+document.addEventListener('change',e=>{
+  if(e.target.name==='mm'){S.models=e.target.value;render()}
+  if(e.target.id==='simsel'){S.sim=e.target.value;runChecks()}
+});
+$('#m-install').onclick=()=>setMode('install');$('#m-update').onclick=()=>setMode('update');$('#m-remove').onclick=()=>setMode('remove');
+
+/* ---- accent from one manifest colour: fill, ink and text colours derived per theme, kept at WCAG AA (4.5:1) ---- */
+const h2r=h=>{h=h.replace('#','');return [0,2,4].map(i=>parseInt(h.substr(i,2),16))};
+const r2h=r=>'#'+r.map(v=>Math.round(Math.max(0,Math.min(255,v))).toString(16).padStart(2,'0')).join('');
+const lum=c=>{const f=v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)};return .2126*f(c[0])+.7152*f(c[1])+.0722*f(c[2])};
+const cr=(a,b)=>{const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
+function r2hsl(c){let [r,g,b]=c.map(v=>v/255);const mx=Math.max(r,g,b),mn=Math.min(r,g,b);let h=0,s=0;const l=(mx+mn)/2;
+  if(mx!==mn){const d=mx-mn;s=l>.5?d/(2-mx-mn):d/(mx+mn);h=mx===r?(g-b)/d+(g<b?6:0):mx===g?(b-r)/d+2:(r-g)/d+4;h/=6}return [h,s,l]}
+function hsl2r(h,s,l){const f=(p,q,t)=>{if(t<0)t+=1;if(t>1)t-=1;return t<1/6?p+(q-p)*6*t:t<1/2?q:t<2/3?p+(q-p)*(2/3-t)*6:p};
+  if(s===0)return [l*255,l*255,l*255];const q=l<.5?l*(1+s):l+s-l*s,p=2*l-q;return [f(p,q,h+1/3)*255,f(p,q,h)*255,f(p,q,h-1/3)*255]}
+const mixc=(a,b,t)=>a.map((v,i)=>v*(1-t)+b[i]*t);
+function derive(hex,dark){
+  const base=h2r(hex),win=h2r(dark?'#141d22':'#fbfdfd'),W=[255,255,255],K=[0,0,0];
+  const [h,s,l]=r2hsl(base);let fill=base,ink,ok=false,ll=l;
+  if(!dark){for(let i=0;i<9;i++){const f=hsl2r(h,s,ll);if(cr(f,W)>=4.5){fill=f;ink=W;ok=true;break}ll-=.02}
+    if(!ok){fill=base;ink=cr(base,K)>=4.5?K:W}}
+  else{for(let i=0;i<9;i++){const f=hsl2r(h,s,ll);if(cr(f,K)>=4.5){fill=f;ink=K;ok=true;break}ll+=.02}
+    if(!ok){fill=base;ink=cr(base,W)>=4.5?W:K}}
+  let tl=l,t=base;for(let i=0;i<30;i++){t=hsl2r(h,s,Math.max(.05,Math.min(.95,tl)));if(cr(t,win)>=4.5)break;tl+=dark?.02:-.02}
+  return {fill:r2h(fill),ink:r2h(ink),text:r2h(t),soft:r2h(mixc(win,base,dark?.22:.14)),cInk:cr(fill,ink),cText:cr(t,win)};
+}
+let ACCENT='#0f9d9a';
+const isDark=()=>{const a=document.documentElement.getAttribute('data-theme');return a?a==='dark':matchMedia('(prefers-color-scheme: dark)').matches};
+function applyAccent(){
+  const d=derive(ACCENT,isDark()),st=document.documentElement.style;
+  st.setProperty('--accent',d.fill);st.setProperty('--accent-ink',d.ink);st.setProperty('--accent-text',d.text);st.setProperty('--accent-soft',d.soft);
+  $('#ctr').textContent='Testo sul colore '+d.cInk.toFixed(1).replace('.',',')+':1 · colore come testo '+d.cText.toFixed(1).replace('.',',')+':1 · '+(d.cInk>=4.5&&d.cText>=4.5?'leggibile (AA)':'da correggere');
+  document.querySelectorAll('#sw button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.c.toLowerCase()===ACCENT.toLowerCase())));
+}
+const SWATCHES=[['Teal','#0f9d9a'],['Giallo','#f2c200'],['Blu','#2f6df6'],['Arancio','#ee7a14'],['Verde','#2e9e5b']];
+$('#sw').innerHTML=SWATCHES.map(([n,c])=>'<button data-c="'+c+'" style="background:'+c+'" aria-label="'+n+'" title="'+n+'" aria-pressed="false"></button>').join('');
+$('#sw').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;ACCENT=b.dataset.c;$('#cust').value=ACCENT;applyAccent()});
+$('#cust').addEventListener('input',e=>{ACCENT=e.target.value;applyAccent()});
+$('#thm').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const t=b.dataset.t;
+  if(t==='system')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);
+  document.querySelectorAll('#thm button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));applyAccent()});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyAccent);
+new MutationObserver(applyAccent).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+applyAccent();
+render();
+</script>

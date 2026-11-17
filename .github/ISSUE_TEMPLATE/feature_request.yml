@@ -1,0 +1,21 @@
+name: Feature or design
+description: Something to add, or a design to agree before code
+labels: [enhancement]
+body:
+  - type: textarea
+    id: why
+    attributes:
+      label: What and why
+      description: What is needed and who needs it. New areas start with a design issue and agreement before code.
+    validations:
+      required: true
+  - type: textarea
+    id: open
+    attributes:
+      label: Open questions
+  - type: textarea
+    id: done
+    attributes:
+      label: Done when
+    validations:
+      required: true

@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "app": {
+    "id": "haedus",
+    "name": "Haedus",
+    "version": "1.4.0",
+    "publisher": "Stellatinus",
+    "accent": "#f2c200"
+  },
+  "scope": "user",
+  "allow_machine": true,
+  "locations": [
+    {
+      "id": "install",
+      "label": "Program",
+      "kind": "install",
+      "required": true,
+      "default": {
+        "windows": "${LOCALAPPDATA}\\Haedus",
+        "linux": "${HOME}/.local/share/haedus",
+        "darwin": "${HOME}/Applications/Haedus"
+      }
+    },
+    {
+      "id": "models",
+      "label": "AI models",
+      "kind": "models",
+      "adopt": true,
+      "on_uninstall": "ask",
+      "default": {
+        "windows": "${USERPROFILE}\\Haedus\\Models",
+        "linux": "${HOME}/.local/share/haedus/models",
+        "darwin": "${HOME}/Library/Application Support/Haedus/Models"
+      }
+    },
+    {
+      "id": "output",
+      "label": "Transcriptions",
+      "kind": "output",
+      "on_uninstall": "keep",
+      "default": {
+        "windows": "${USERPROFILE}\\Documents\\Haedus",
+        "linux": "${HOME}/Documents/Haedus",
+        "darwin": "${HOME}/Documents/Haedus"
+      }
+    }
+  ],
+  "components": [
+    {
+      "id": "core",
+      "label": "the core",
+      "url": "https://example.invalid/haedus-core.zip",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size": 222298112,
+      "location": "install"
+    },
+    {
+      "id": "engine",
+      "label": "the transcription engine",
+      "url": "https://example.invalid/whisper-engine.zip",
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "size": 100663296,
+      "location": "install"
+    },
+    {
+      "id": "voice_model",
+      "label": "the voice model",
+      "url": "https://example.invalid/ggml-large-v3-q5.bin",
+      "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "size": 1181116006,
+      "location": "models"
+    }
+  ],
+  "shortcuts": {
+    "start_menu": { "offer": true, "default": true },
+    "taskbar": { "offer": true, "default": false },
+    "desktop": { "offer": true, "default": true }
+  }
+}

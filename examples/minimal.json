@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "app": { "id": "demo", "name": "Demo", "version": "0.1.0", "accent": "#2f6df6" },
+  "locations": [
+    {
+      "id": "install",
+      "label": "Program",
+      "kind": "install",
+      "required": true,
+      "default": { "windows": "${LOCALAPPDATA}\\Demo", "linux": "${HOME}/.local/share/demo", "darwin": "${HOME}/Applications/Demo" }
+    }
+  ]
+}
