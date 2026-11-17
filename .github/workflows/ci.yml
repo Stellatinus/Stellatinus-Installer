@@ -1,0 +1,158 @@
+name: CI
+
+# Runs on every push and, for pull requests from forks, on the pull request.
+# A pull request from a branch of this repository is already covered by the
+# push, so those jobs are skipped to avoid running everything twice.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.head.ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    if: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          # Go 1.24.7 has a standard-library vulnerability fixed only in 1.25.8
+          # (GO-2026-4602); see docs/decisions.md.
+          go-version: "1.25"
+          check-latest: true
+      - uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.5.0
+
+  test:
+    name: Test (${{ matrix.os }})
+    if: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          # Go 1.24.7 has a standard-library vulnerability fixed only in 1.25.8
+          # (GO-2026-4602); see docs/decisions.md.
+          go-version: "1.25"
+          check-latest: true
+      - run: go vet ./...
+      - name: go test with the race detector (Linux and macOS)
+        if: runner.os != 'Windows'
+        run: go test -race -count=1 ./...
+      - name: go test (Windows)
+        if: runner.os == 'Windows'
+        run: go test -count=1 ./...
+
+  # The permission checks must also work for a user who is not root; the
+  # hosted runners run as a normal user, so this is exercised above. This job
+  # makes it explicit by failing if the "read-only folder" test was skipped on
+  # Linux.
+  permission-test-not-skipped:
+    name: Permission test runs on Linux
+    if: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          # Go 1.24.7 has a standard-library vulnerability fixed only in 1.25.8
+          # (GO-2026-4602); see docs/decisions.md.
+          go-version: "1.25"
+          check-latest: true
+      - name: Run the read-only folder test and fail if it was skipped
+        run: |
+          go test -count=1 -v -run 'TestWriteAccessFailsInAReadOnlyFolder' ./internal/checks/ | tee perm.log
+          if grep -q -e '--- SKIP' perm.log; then echo '::error::the read-only folder test was skipped, so it proved nothing'; exit 1; fi
+
+  examples:
+    name: Example manifests are valid
+    if: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          # Go 1.24.7 has a standard-library vulnerability fixed only in 1.25.8
+          # (GO-2026-4602); see docs/decisions.md.
+          go-version: "1.25"
+          check-latest: true
+      - name: Validate every manifest in examples/
+        run: |
+          go build -o /tmp/stellatinus-installer ./cmd/stellatinus-installer
+          for f in examples/*.json; do /tmp/stellatinus-installer validate "$f"; done
+      - name: The accent colours in the examples are legible
+        run: |
+          for f in examples/*.json; do
+            c=$(grep -o '"accent": *"#[0-9a-fA-F]\{6\}"' "$f" | grep -o '#[0-9a-fA-F]\{6\}')
+            /tmp/stellatinus-installer accent "$c"
+          done
+
+  vulncheck:
+    name: Known vulnerabilities in dependencies
+    if: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          # Go 1.24.7 has a standard-library vulnerability fixed only in 1.25.8
+          # (GO-2026-4602); see docs/decisions.md.
+          go-version: "1.25"
+          check-latest: true
+      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./...
+
+  # Build the command line for every system we target and keep the result as a
+  # workflow artifact for 14 days. There are no releases and no packages yet:
+  # nothing consumes them (see docs/decisions.md).
+  build:
+    name: Build (${{ matrix.goos }}/${{ matrix.goarch }})
+    needs: [lint, test, examples]
+    if: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { goos: windows, goarch: amd64, ext: .exe }
+          - { goos: windows, goarch: arm64, ext: .exe }
+          - { goos: linux, goarch: amd64, ext: "" }
+          - { goos: linux, goarch: arm64, ext: "" }
+          - { goos: darwin, goarch: amd64, ext: "" }
+          - { goos: darwin, goarch: arm64, ext: "" }
+    env:
+      CGO_ENABLED: "0"
+      GOOS: ${{ matrix.goos }}
+      GOARCH: ${{ matrix.goarch }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          # Go 1.24.7 has a standard-library vulnerability fixed only in 1.25.8
+          # (GO-2026-4602); see docs/decisions.md.
+          go-version: "1.25"
+          check-latest: true
+      - name: Build
+        run: |
+          mkdir -p dist
+          go build -trimpath -ldflags "-s -w -X main.version=${{ github.sha }}" \
+            -o "dist/stellatinus-installer-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}" ./cmd/stellatinus-installer
+          (cd dist && sha256sum * > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stellatinus-installer-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/
+          retention-days: 14
+          if-no-files-found: error
