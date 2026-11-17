@@ -32,6 +32,7 @@ Status: **decided** (by the maintainers), **proposed** (my first choice, applied
 | Delivery order: install, uninstall and command line on Windows; then the updater; then Linux and macOS | the first adopter is Haedus on Windows | |
 | **Apache-2.0** | the same as Regulus and Haedus | to be confirmed by the maintainer |
 | CI produces **build artifacts only**, no releases and no packages | nothing consumes them yet; releases come with signing ([#9](https://github.com/Stellatinus/Stellatinus-Installer/issues/9)) when the first adopter must download the engine | |
+| **CI and builds use Go 1.25** while `go.mod` keeps a minimum of Go 1.24 | `govulncheck` found a standard-library vulnerability in Go 1.24.7 (GO-2026-4602, `os`), fixed only in Go 1.25.8; the built command line should not carry it | raise the minimum in `go.mod`, which would force every contributor to upgrade |
 | GitHub Actions are referenced by major version, not by commit | the commit hashes could not be looked up from where this was written; Dependabot keeps them current | pin by hash (Regulus#206 does) |
 
 ## Open

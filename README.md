@@ -44,7 +44,7 @@ flowchart LR
 
 ## Try it
 
-Requires Go 1.24 or newer.
+Requires Go 1.24 or newer (CI and the build artifacts use Go 1.25, which has a patched standard library).
 
 ```sh
 git clone https://github.com/Stellatinus/Stellatinus-Installer.git
