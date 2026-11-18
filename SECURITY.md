@@ -12,7 +12,7 @@ In scope: deleting or overwriting something outside what the installer created, 
 
 ## Status of this project
 
-The project is at an early stage: there is no installer window, downloader or updater yet, and no release. There is nothing to patch in a released version; reports about the design or the current code are still welcome.
+The project is at an early stage: the command line already downloads, writes and removes files, but there is no setup window or updater yet and no release. There is nothing to patch in a released version; reports about the design or the current code are still welcome.
 
 ## Rules the code already enforces
 

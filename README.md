@@ -2,7 +2,7 @@
 
 A small, shared installer, uninstaller and updater that Stellatinus apps embed in their own download. Each app brings a **manifest** (its name, folders, downloads, shortcuts and one accent colour); the installer gives it a polished setup window, safe checks before anything is written, an uninstaller that only removes what the installer created, and (later) an updater with verification and rollback.
 
-> **Status: early.** The engine's building blocks and a command line exist and are tested. There is **no setup window, no downloading, no installing and no updater yet**, and nothing has been verified on a real Windows, macOS or Linux machine. Follow the work in the [epic](https://github.com/Stellatinus/Stellatinus-Installer/issues/14) and read [docs/decisions.md](docs/decisions.md) for what is decided and what is open.
+> **Status: early.** The engine can install an app from a manifest and remove it again from the **command line** (checks first, downloads checked against their hash, everything recorded, rollback on failure, and removal only when asked), and a spike shows the setup window's interface. There is **no setup window, no shortcuts and no updater yet**, and nothing has been verified on a real Windows, macOS or Linux machine. Follow the work in the [epic](https://github.com/Stellatinus/Stellatinus-Installer/issues/14) and read [docs/decisions.md](docs/decisions.md) for what is decided and what is open.
 
 ## What it is, and what it is not
 
@@ -33,7 +33,7 @@ flowchart LR
 | Manifest format, validation, JSON Schema | Implemented, unit tested |
 | Accent colour derivation with a contrast guarantee (WCAG AA) | Implemented, unit tested |
 | Pre-install checks (privileges, write permission, space, overlap, existing install) | Implemented, unit tested; Windows behaviour (ACLs, UAC, controlled folder access) **not verified on a real machine** |
-| Installation record, removal plan and a safe `Apply` | Implemented, unit tested; the command line only **shows** a plan, it does not remove |
+| Installation record, removal plan and a safe `Apply` | Implemented, unit tested; `uninstall --yes` removes by it, `plan` and `uninstall` without `--yes` only **show** it |
 | Command line (`validate`, `accent`, `check`, `install`, `uninstall`, `plan`) | Implemented: installs from a manifest with checks first, rolls back on failure or Ctrl+C, a silent mode, a response file and JSON events; `uninstall` only shows the plan unless `--yes` ([docs/cli.md](docs/cli.md)). Tested against a local HTTPS server; **not verified on a real machine** |
 | Setup window | A **spike and a proposal** ([docs/window.md](docs/window.md)): the local interface server and the choice of browser window are built and tested; the wizard itself is not started ([#5](https://github.com/Stellatinus/Stellatinus-Installer/issues/5)); the choice of technology stays open until real-machine results ([#3](https://github.com/Stellatinus/Stellatinus-Installer/issues/3)) |
 | Downloading and installing components (`internal/install`) | Implemented as a library and tested against a local HTTPS server (resume, wrong hash, stalls, hostile zips, rollback); reachable from the command line; nothing verified on a real machine |

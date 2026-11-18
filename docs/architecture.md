@@ -16,7 +16,7 @@ One engine, written in Go, packaged inside each app's own download. The app brin
 | `internal/localui` | serve the setup window's interface on `127.0.0.1`: single-use address, session cookie, Host and Origin checks, security headers | draw the window or decide what the interface does |
 | `internal/opener` | choose how to show the address (an app window of Edge, Chrome or Chromium, else the default browser) and start it | serve anything |
 | `internal/record` | the installation record (every file, folder and shortcut with its owner), the removal plan, and a safe `Apply` | decide what the user wants to keep; the window passes the choices |
-| `cmd/stellatinus-installer` | the command line over the packages above | install or remove anything yet |
+| `cmd/stellatinus-installer` | the command line over the packages above: `install`, `uninstall` (only with `--yes`), `check`, `plan`, `validate`, `accent` | show a window, create shortcuts or update an installation |
 
 ## What happens at install time (planned)
 
