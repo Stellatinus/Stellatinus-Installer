@@ -243,7 +243,7 @@ func TestSchemaListsEveryField(t *testing.T) {
 	check("root", props(schema), reflect.TypeOf(Manifest{}))
 	for name, typ := range map[string]reflect.Type{
 		"app": reflect.TypeOf(App{}), "location": reflect.TypeOf(Location{}), "component": reflect.TypeOf(Component{}),
-		"shortcuts": reflect.TypeOf(Shortcuts{}), "shortcut": reflect.TypeOf(Shortcut{}),
+		"shortcuts": reflect.TypeOf(Shortcuts{}), "shortcut": reflect.TypeOf(Shortcut{}), "launch": reflect.TypeOf(Launch{}),
 		"option": reflect.TypeOf(Option{}), "config_file": reflect.TypeOf(ConfigFile{}),
 	} {
 		d, ok := defs[name].(map[string]any)
@@ -363,6 +363,48 @@ func TestExamplesAreFullyTranslatedToItalian(t *testing.T) {
 		}
 		if missing := m.MissingTexts("it"); len(missing) != 0 {
 			t.Errorf("%s has no Italian text for %v", filepath.Base(f), missing)
+		}
+	}
+}
+
+func TestLaunchIsRequiredForShortcuts(t *testing.T) {
+	withShortcut := func(d map[string]any) {
+		d["shortcuts"] = map[string]any{"desktop": map[string]any{"offer": true}}
+	}
+	// Offering a shortcut with nothing to start is an error.
+	if _, err := Parse(strings.NewReader(mutate(t, withShortcut))); err == nil || !strings.Contains(err.Error(), "launch is required") {
+		t.Fatalf("got %v, want launch is required", err)
+	}
+	// With a launch, it is valid and found per system.
+	doc := mutate(t, func(d map[string]any) {
+		withShortcut(d)
+		d["launch"] = map[string]any{"location": "install", "path": map[string]any{"windows": "bin/App.exe"}}
+	})
+	m, err := Parse(strings.NewReader(doc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	loc, rel, ok := m.LaunchPath("windows")
+	if !ok || loc != "install" || rel != filepath.Join("bin", "App.exe") {
+		t.Fatalf("LaunchPath(windows) = %q %q %v", loc, rel, ok)
+	}
+	if _, _, ok := m.LaunchPath("linux"); ok {
+		t.Fatal("a system with no program must say so")
+	}
+}
+
+func TestLaunchIsChecked(t *testing.T) {
+	for name, launch := range map[string]map[string]any{
+		"unknown location": {"location": "nowhere", "path": map[string]any{"windows": "a.exe"}},
+		"no path":          {"location": "install"},
+		"unknown system":   {"location": "install", "path": map[string]any{"beos": "a"}},
+		"escapes":          {"location": "install", "path": map[string]any{"windows": "../a.exe"}},
+		"absolute":         {"location": "install", "path": map[string]any{"linux": "/bin/sh"}},
+		"backslash":        {"location": "install", "path": map[string]any{"windows": `bin\\a.exe`}},
+	} {
+		doc := mutate(t, func(d map[string]any) { d["launch"] = launch })
+		if _, err := Parse(strings.NewReader(doc)); err == nil {
+			t.Errorf("%s: a launch like this must be refused", name)
 		}
 	}
 }

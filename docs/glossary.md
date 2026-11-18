@@ -8,6 +8,7 @@ What each term means today. Add new terms here.
 | **Manifest** | the JSON file an app gives the engine: identity, folders, downloads, shortcuts, one accent colour |
 | **Location** | a named folder the user chooses (install, models, output, data) |
 | **Adopted** | a folder or file that was already there; the installer uses it where it is and never deletes it |
+| **Launch** | the program a shortcut starts, named in the manifest per system |
 | **Installation record** | the file listing every file, folder and shortcut the installer created or adopted, with its owner |
 | **Owner** | `installer` (created by it, may be removed), `adopted` (already there), `user` (added later). Only `installer` entries are ever removed |
 | **Plan** | what removal would do with each record entry: remove, keep or protected |

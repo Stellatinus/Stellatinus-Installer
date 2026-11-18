@@ -7,7 +7,7 @@ stellatinus-installer version
 stellatinus-installer validate examples/haedus.json
 stellatinus-installer accent '#f2c200'
 stellatinus-installer check   [--scope user|machine] [--set location=path]... [--option id=number]... [--record file] [--json] <manifest.json>
-stellatinus-installer install [--scope user|machine] [--set location=path]... [--option id=number]... [--response file] [--silent] [--json] [--dry-run] <manifest.json>
+stellatinus-installer install [--scope user|machine] [--set location=path]... [--option id=number]... [--shortcut place]... [--response file] [--silent] [--json] [--dry-run] <manifest.json>
 stellatinus-installer uninstall [--scope user|machine] [--keep-location id]... [--keep-path path]... [--yes] [--silent] [--json] <record.json | app-id>
 stellatinus-installer plan    [--keep-location id]... [--keep-path path]... [--json] <record.json>
 ```
@@ -41,7 +41,19 @@ A JSON file that answers what the window would ask, so no one has to be there. U
 
 `--option id=number` answers an option (a port) and wins over the response file; an answer for an option the manifest does not have is a usage error, and a port that is not from 1024 to 65535, or is busy, is refused before anything is downloaded. Only the components for this system (`platforms`) are installed.
 
-Shortcuts are not part of it yet: they are not created by the engine ([#26](https://github.com/Stellatinus/Stellatinus-Installer/issues/26)).
+`"shortcuts": ["start_menu", "desktop"]` asks for shortcuts, and `--shortcut start_menu,desktop` (repeatable, or separated by commas) adds to it. Nothing is made unless asked: a silent install never puts anything on the desktop by itself.
+
+### Shortcuts
+
+A shortcut starts the program the manifest's `launch` names. The places and what is made:
+
+| Place | Windows | Linux | macOS |
+|---|---|---|---|
+| `start_menu` | `Programs\<Name>.lnk` under `%APPDATA%\Microsoft\Windows\Start Menu` (all users: `%ProgramData%`) | `<app id>.desktop` in `~/.local/share/applications` (all users: `/usr/share/applications`) | a link in `~/Applications` (all users: `/Applications`) |
+| `desktop` | `<Name>.lnk` in `%USERPROFILE%\Desktop` (all users: `%PUBLIC%\Desktop`) | `<app id>.desktop` in the desktop folder named by `user-dirs.dirs`, else `~/Desktop` | a link in `~/Desktop` |
+| `taskbar` | **not made**: no supported way to pin from an installer; a note says so | not made | not made |
+
+Rules that hold everywhere: the manifest must **offer** the place and name a program for this system, or the request is refused before anything is done (exit 1); a shortcut is **never written over** a file that is already there (that one is reported and left, and uninstall will not touch it); the desktop folder is never created (a missing one is a note), the Start menu folder is, and it is not removed; a program that was not unpacked is a note, not a shortcut to nothing; each shortcut is recorded (kind `shortcut`, owner `installer`) before it is written, so a rollback or `uninstall` removes it, as the link itself and never its target. Desktop shortcuts for all users exist on Windows only. `--dry-run` prints the path of each shortcut it would make, and the result lists them (`shortcuts`) and the notes (`notes`).
 
 ### Where the record lives
 

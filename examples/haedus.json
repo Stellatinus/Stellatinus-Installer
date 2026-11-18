@@ -95,6 +95,14 @@
       "default": true
     }
   },
+  "launch": {
+    "location": "install",
+    "path": {
+      "windows": "Haedus.exe",
+      "linux": "haedus",
+      "darwin": "Haedus.app"
+    }
+  },
   "texts": {
     "it": {
       "app.name": "Haedus",

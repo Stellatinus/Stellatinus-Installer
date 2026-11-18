@@ -39,7 +39,7 @@ Usage:
   stellatinus-installer accent <#rrggbb>
   stellatinus-installer check [--scope user|machine] [--set location=path]... [--option id=number]... [--record file] [--json] [<manifest.json>]
   stellatinus-installer plan [--keep-location id]... [--keep-path path]... [--json] <record.json>
-  stellatinus-installer install [--scope user|machine] [--set location=path]... [--option id=number]... [--response file] [--silent] [--json] [--dry-run] [<manifest.json>]
+  stellatinus-installer install [--scope user|machine] [--set location=path]... [--option id=number]... [--shortcut place]... [--response file] [--silent] [--json] [--dry-run] [<manifest.json>]
   stellatinus-installer uninstall [--scope user|machine] [--keep-location id]... [--keep-path path]... [--yes] [--silent] [--json] <record.json | app-id>
   stellatinus-installer pack [--engine file] --manifest <manifest.json> --out <file>
   stellatinus-installer register [--scope user|machine] [--location id] [--origin text] [--recursive] <record.json | app-id> <path>...

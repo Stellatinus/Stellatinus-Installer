@@ -72,6 +72,9 @@ type Manifest struct {
 	Options       []Option     `json:"options,omitempty"`
 	Config        []ConfigFile `json:"config,omitempty"`
 	Shortcuts     Shortcuts    `json:"shortcuts,omitempty"`
+	// Launch says which program a shortcut starts. It is required when a
+	// shortcut is offered.
+	Launch Launch `json:"launch,omitempty"`
 	// Texts holds translations: language code, then text key, then the text.
 	// English is the base, written in the fields themselves.
 	Texts map[string]map[string]string `json:"texts,omitempty"`
@@ -127,6 +130,15 @@ type Component struct {
 	// Platforms limits the component to some systems: "windows", "linux" or
 	// "darwin", optionally with "/amd64" or "/arm64". Empty means every system.
 	Platforms []string `json:"platforms,omitempty"`
+}
+
+// Launch names the program a shortcut starts: a path inside a location, for
+// each system, written with "/".
+type Launch struct {
+	Location string `json:"location,omitempty"`
+	// Path maps "windows", "linux" and "darwin" to the program, for example
+	// "Haedus.exe", "bin/haedus" or "Haedus.app".
+	Path map[string]string `json:"path,omitempty"`
 }
 
 // Shortcut is one place a shortcut can be offered.

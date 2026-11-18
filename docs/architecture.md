@@ -12,11 +12,12 @@ One engine, written in Go, packaged inside each app's own download. The app brin
 | `internal/theme` | turn the app's one accent colour into a palette for the light and the dark theme and prove it is legible (WCAG AA, 4.5:1) | draw anything or read the system theme |
 | `internal/checks` | privileges, permission to write (by creating and deleting a test file), free space, overlapping folders, an earlier installation; each result says which step to go back to | create folders, keep test files, install |
 | `internal/safepath` | check names and relative paths that come from a manifest or an archive, so they are safe on every system | touch the disk |
-| `internal/install` | download each component (https only, size capped, resumable, sha256 checked), write it, unpack zips safely, record everything, and **roll back** what the run created when something fails | create shortcuts, show anything, choose folders, or update an existing installation |
+| `internal/install` | download each component (https only, size capped, resumable, sha256 checked), write it, unpack zips safely, create the shortcuts asked for, record everything, and **roll back** what the run created when something fails | show anything, choose folders or shortcuts, or update an existing installation |
+| `internal/shortcut` | work out where a shortcut goes per system and scope, and write it (a `.lnk` by hand, a `.desktop` file, a link), never over an existing file | record anything, pin to the taskbar, or decide which shortcuts the user wants |
 | `internal/localui` | serve the setup window's interface on `127.0.0.1`: single-use address, session cookie, Host and Origin checks, security headers | draw the window or decide what the interface does |
 | `internal/opener` | choose how to show the address (an app window of Edge, Chrome or Chromium, else the default browser) and start it | serve anything |
 | `internal/record` | the installation record (every file, folder and shortcut with its owner), the removal plan, and a safe `Apply` | decide what the user wants to keep; the window passes the choices |
-| `cmd/stellatinus-installer` | the command line over the packages above: `install`, `uninstall` (only with `--yes`), `check`, `plan`, `validate`, `accent` | show a window, create shortcuts or update an installation |
+| `cmd/stellatinus-installer` | the command line over the packages above: `install`, `uninstall` (only with `--yes`), `check`, `plan`, `validate`, `accent` | show a window or update an installation |
 
 ## What happens at install time (planned)
 
@@ -38,7 +39,7 @@ sequenceDiagram
     W->>U: finish, "Open"
 ```
 
-The engine part, "download components" down to the record, exists as `internal/install` and is tested against a local HTTPS server; it is reachable from the command line (`install`, `uninstall`; see [cli.md](cli.md)). The window and shortcuts do not exist yet.
+The engine part, "download components" down to the record, exists as `internal/install` and is tested against a local HTTPS server; it is reachable from the command line (`install`, `uninstall`; see [cli.md](cli.md)). The window does not exist yet.
 
 ## Removal
 

@@ -20,6 +20,7 @@ import (
 	"github.com/Stellatinus/Stellatinus-Installer/internal/manifest"
 	"github.com/Stellatinus/Stellatinus-Installer/internal/pack"
 	"github.com/Stellatinus/Stellatinus-Installer/internal/record"
+	"github.com/Stellatinus/Stellatinus-Installer/internal/shortcut"
 )
 
 // Exit codes. docs/cli.md lists them per command.
@@ -87,6 +88,39 @@ type response struct {
 	Scope     string            `json:"scope,omitempty"`
 	Locations map[string]string `json:"locations,omitempty"`
 	Options   map[string]int    `json:"options,omitempty"`
+	// Shortcuts lists the places to put a shortcut: start_menu, desktop, taskbar.
+	Shortcuts []string `json:"shortcuts,omitempty"`
+}
+
+// parseShortcuts combines the response file's shortcuts with --shortcut
+// (a value may hold several places separated by commas) and checks each one.
+func parseShortcuts(fromFile, flags []string) ([]shortcut.Place, error) {
+	var out []shortcut.Place
+	seen := map[shortcut.Place]bool{}
+	add := func(from, v string) error {
+		for _, part := range strings.Split(v, ",") {
+			p := shortcut.Place(strings.TrimSpace(part))
+			if !p.Valid() {
+				return fmt.Errorf("%s: %q is not a place for a shortcut (start_menu, desktop or taskbar)", from, part)
+			}
+			if !seen[p] {
+				seen[p] = true
+				out = append(out, p)
+			}
+		}
+		return nil
+	}
+	for _, v := range fromFile {
+		if err := add("the response file", v); err != nil {
+			return nil, err
+		}
+	}
+	for _, v := range flags {
+		if err := add("--shortcut", v); err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
 }
 
 // parseAnswers combines the response file's options with --option id=value
@@ -232,9 +266,10 @@ func cmdInstall(ctx context.Context, d deps, args []string, stdout, stderr io.Wr
 	asJSON := fs.Bool("json", false, "print one JSON event per line")
 	silent := fs.Bool("silent", false, "print nothing but errors")
 	dry := fs.Bool("dry-run", false, "run the checks and show what would be downloaded, change nothing")
-	var sets, optSets listFlag
+	var sets, optSets, shortSets listFlag
 	fs.Var(&sets, "set", "location=path, to choose a folder instead of the default (repeatable)")
 	fs.Var(&optSets, "option", "id=number, to answer an option such as a port (repeatable)")
+	fs.Var(&shortSets, "shortcut", "start_menu, desktop or taskbar: where to put a shortcut (repeatable, or separated by commas)")
 	if err := fs.Parse(args); err != nil {
 		return exitUsage
 	}
@@ -258,6 +293,11 @@ func cmdInstall(ctx context.Context, d deps, args []string, stdout, stderr io.Wr
 	}
 
 	answers, err := parseAnswers(m, resp.Options, optSets)
+	if err != nil {
+		return pr.fail(exitUsage, nil, err.Error())
+	}
+
+	places, err := parseShortcuts(resp.Shortcuts, shortSets)
 	if err != nil {
 		return pr.fail(exitUsage, nil, err.Error())
 	}
@@ -314,6 +354,10 @@ func cmdInstall(ctx context.Context, d deps, args []string, stdout, stderr io.Wr
 	if err != nil {
 		return pr.fail(exitProblem, nil, err.Error())
 	}
+	// A shortcut the manifest does not allow is refused before the checks run.
+	if err := install.CheckShortcuts(m, places, runtime.GOOS); err != nil {
+		return pr.fail(exitProblem, nil, err.Error())
+	}
 
 	// The checks come first: if one fails, nothing is installed.
 	results := checks.Run(m, paths, checks.Options{Scope: sc, Elevated: checks.Elevated(), RecordPath: recPath, Answers: answers})
@@ -342,12 +386,28 @@ func cmdInstall(ctx context.Context, d deps, args []string, stdout, stderr io.Wr
 		for _, cf := range m.Config {
 			pr.say("  would write %s in %s", cf.Name, paths[cf.Location])
 		}
+		for _, place := range places {
+			if place == shortcut.Taskbar {
+				pr.say("  would not pin to the taskbar: %v", shortcut.ErrTaskbar)
+				continue
+			}
+			spec, err := install.ShortcutSpec(m, place, sc, runtime.GOOS, paths)
+			if err != nil {
+				return pr.fail(exitProblem, nil, err.Error())
+			}
+			path, err := shortcut.Path(spec, shortcut.Env{GOOS: runtime.GOOS})
+			if err != nil {
+				pr.say("  would not make a %s shortcut: %v", place, err)
+				continue
+			}
+			pr.say("  would make a %s shortcut at %s", place, path)
+		}
 		pr.event("result", map[string]any{"ok": true, "dry_run": true, "exit": exitOK})
 		return exitOK
 	}
 
 	opt := install.Options{
-		Client: d.client, Paths: paths, Scope: sc, RecordPath: recPath, Answers: answers,
+		Client: d.client, Paths: paths, Scope: sc, RecordPath: recPath, Answers: answers, Shortcuts: places,
 		Events: pr.progress,
 		Log: func(s string) {
 			pr.event("log", map[string]any{"message": s})
@@ -378,7 +438,13 @@ func cmdInstall(ctx context.Context, d deps, args []string, stdout, stderr io.Wr
 	}
 	pr.say("")
 	pr.say("Installed %s %s: %d file(s) written, %d component(s) already in place. Record: %s", m.App.Name, m.App.Version, files, len(res.Skipped), recPath)
-	pr.event("result", map[string]any{"ok": true, "exit": exitOK, "record": recPath, "files": files, "skipped": res.Skipped})
+	for _, p := range res.Shortcuts {
+		pr.say("Shortcut: %s", p)
+	}
+	for _, n := range res.ShortcutNotes {
+		pr.say("Note: %s", n)
+	}
+	pr.event("result", map[string]any{"ok": true, "exit": exitOK, "record": recPath, "files": files, "skipped": res.Skipped, "shortcuts": res.Shortcuts, "notes": res.ShortcutNotes})
 	return exitOK
 }
 

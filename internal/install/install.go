@@ -2,8 +2,9 @@
 // against its sha256, writes them into the chosen folders and records every
 // file and folder it creates, so the installation can be removed. If anything
 // fails it removes what this run created and leaves everything that was there
-// before untouched. It does not create shortcuts, show anything or decide
-// which folders to use, and it does not update an existing installation: a
+// before untouched. It creates the shortcuts it is asked for (see package
+// shortcut) and records them. It does not show anything or decide which
+// folders or shortcuts to use, and it does not update an existing installation: a
 // second run over a recorded installation is refused.
 package install
 
@@ -26,6 +27,7 @@ import (
 	"github.com/Stellatinus/Stellatinus-Installer/internal/manifest"
 	"github.com/Stellatinus/Stellatinus-Installer/internal/record"
 	"github.com/Stellatinus/Stellatinus-Installer/internal/safepath"
+	"github.com/Stellatinus/Stellatinus-Installer/internal/shortcut"
 )
 
 // Phase is what the installer is doing.
@@ -80,6 +82,12 @@ type Options struct {
 	// the manifest's default.
 	GOOS, GOARCH string
 	Answers      map[string]int
+
+	// Shortcuts are the places to put a shortcut to the program the manifest's
+	// launch names. Each must be offered by the manifest. Env reads the
+	// environment variables that decide where they go (default os.Getenv).
+	Shortcuts []shortcut.Place
+	Env       func(string) string
 }
 
 // Result is what a successful run leaves behind.
@@ -88,6 +96,11 @@ type Result struct {
 	// Skipped lists components whose file was already in place with the right
 	// hash, so nothing was downloaded.
 	Skipped []string
+	// Shortcuts lists the shortcuts that were created; ShortcutNotes says, in a
+	// sentence each, why a requested one was not (it was already there, the
+	// desktop folder does not exist, the taskbar).
+	Shortcuts     []string
+	ShortcutNotes []string
 }
 
 // Error is returned when an installation fails. RolledBack says whether
@@ -146,6 +159,9 @@ type runner struct {
 	paths   map[string]string // folder chosen for each location
 	created []record.Entry    // what this run created, in order
 	skipped []string
+
+	shortcuts []string // created
+	notes     []string // requested and not created, with the reason
 }
 
 // Run installs every component of the manifest.
@@ -175,6 +191,9 @@ func Run(ctx context.Context, m *manifest.Manifest, opt Options) (*Result, error
 	scope := opt.Scope
 	if scope == "" {
 		scope = m.Scope
+	}
+	if err := checkShortcuts(m, opt); err != nil {
+		return nil, err
 	}
 	r := &runner{m: m, comps: m.ComponentsFor(opt.GOOS, opt.GOARCH), answers: answers, opt: opt, paths: map[string]string{}}
 	for id, p := range opt.Paths {
@@ -207,8 +226,14 @@ func Run(ctx context.Context, m *manifest.Manifest, opt Options) (*Result, error
 	if err := r.save(); err != nil {
 		return nil, r.fail(err)
 	}
+	if err := r.makeShortcuts(scope); err != nil {
+		return nil, r.fail(err)
+	}
+	if err := r.save(); err != nil {
+		return nil, r.fail(err)
+	}
 	r.emit(Event{Phase: PhaseDone, Index: len(r.comps), Count: len(r.comps)})
-	return &Result{Record: r.rec, Skipped: r.skipped}, nil
+	return &Result{Record: r.rec, Skipped: r.skipped, Shortcuts: r.shortcuts, ShortcutNotes: r.notes}, nil
 }
 
 func (r *runner) emit(e Event) {
