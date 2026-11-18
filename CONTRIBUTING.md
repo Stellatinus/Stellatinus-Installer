@@ -4,7 +4,7 @@ Thanks for helping. This guide covers setup, how we work and what a good pull re
 
 ## Setup
 
-Requirements: Go 1.26.1 or newer (see [docs/decisions.md](docs/decisions.md)), `make`, and `golangci-lint` v2.15 or newer for linting (it must be built with Go 1.26 or newer).
+Requirements: the newest patch of Go 1.26 (1.26.11 or later was clean in `govulncheck` when this was written) (see [docs/decisions.md](docs/decisions.md)), `make`, and `golangci-lint` v2.15 or newer for linting (it must be built with Go 1.26 or newer).
 
 ```sh
 git clone https://github.com/Stellatinus/Stellatinus-Installer.git

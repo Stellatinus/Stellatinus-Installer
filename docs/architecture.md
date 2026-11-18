@@ -11,6 +11,8 @@ One engine, written in Go, packaged inside each app's own download. The app brin
 | `internal/manifest` | read a manifest strictly (unknown fields are errors), validate it, report all problems together, expand default paths | install anything, touch the disk beyond reading the file |
 | `internal/theme` | turn the app's one accent colour into a palette for the light and the dark theme and prove it is legible (WCAG AA, 4.5:1) | draw anything or read the system theme |
 | `internal/checks` | privileges, permission to write (by creating and deleting a test file), free space, overlapping folders, an earlier installation; each result says which step to go back to | create folders, keep test files, install |
+| `internal/safepath` | check names and relative paths that come from a manifest or an archive, so they are safe on every system | touch the disk |
+| `internal/install` | download each component (https only, size capped, resumable, sha256 checked), write it, unpack zips safely, record everything, and **roll back** what the run created when something fails | create shortcuts, show anything, choose folders, or update an existing installation |
 | `internal/record` | the installation record (every file, folder and shortcut with its owner), the removal plan, and a safe `Apply` | decide what the user wants to keep; the window passes the choices |
 | `cmd/stellatinus-installer` | the command line over the packages above | install or remove anything yet |
 
@@ -34,7 +36,7 @@ sequenceDiagram
     W->>U: finish, "Open"
 ```
 
-Nothing from the line "download components" down exists yet.
+The engine part, "download components" down to the record, exists as `internal/install` and is tested against a local HTTPS server; it is not yet reachable from the command line ([#17](https://github.com/Stellatinus/Stellatinus-Installer/issues/17)), and the window and shortcuts do not exist yet.
 
 ## Removal
 

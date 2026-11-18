@@ -49,6 +49,7 @@
     {
       "id": "core",
       "label": "the core",
+      "kind": "zip",
       "url": "https://example.invalid/haedus-core.zip",
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
       "size": 222298112,
@@ -57,6 +58,8 @@
     {
       "id": "engine",
       "label": "the transcription engine",
+      "kind": "zip",
+      "dest": "engine",
       "url": "https://example.invalid/whisper-engine.zip",
       "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
       "size": 100663296,

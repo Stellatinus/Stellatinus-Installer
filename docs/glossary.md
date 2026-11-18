@@ -17,6 +17,8 @@ What each term means today. Add new terms here.
 | **Accent** | the one colour an app sets; the engine derives every other colour from it |
 | **Scope** | `user` (only the current user, no administrator) or `machine` (all users, needs elevation) |
 | **Component** | something downloaded while installing, checked against its sha256 |
+| **Partial file** | `.stellatinus-<id>.part`, the file a component is downloaded into; kept if a download drops so it can be resumed, hashed in full at the end, removed on failure |
+| **Rollback** | what the installer does when an installation fails: it removes everything that run created (from the record) and leaves what was there before |
 | **Channel** | `direct` (downloaded from the app's own site) or `store` (Microsoft Store, postponed) |
 | **Wizard** | the setup window with its steps; planned |
 | **Adopter** | an app that uses the installer (Haedus, Mira, Regulus Desktop, Polaris) |

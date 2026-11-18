@@ -80,6 +80,18 @@ func TestRejects(t *testing.T) {
 		"dot dot": {func(d map[string]any) {
 			d["locations"].([]any)[0].(map[string]any)["default"] = map[string]any{"linux": "${HOME}/../etc"}
 		}, "'..'"},
+		"zero size": {func(d map[string]any) { d["components"].([]any)[0].(map[string]any)["size"] = 0 }, "more than zero"},
+		"bad kind":  {func(d map[string]any) { d["components"].([]any)[0].(map[string]any)["kind"] = "tar" }, "components[0].kind"},
+		"name with a slash": {func(d map[string]any) {
+			d["components"].([]any)[0].(map[string]any)["name"] = "sub/core.zip"
+		}, "components[0].name"},
+		"reserved name": {func(d map[string]any) { d["components"].([]any)[0].(map[string]any)["name"] = "con.zip" }, "reserved"},
+		"name on a zip": {func(d map[string]any) {
+			c := d["components"].([]any)[0].(map[string]any)
+			c["kind"], c["name"] = "zip", "x.zip"
+		}, "only for kind"},
+		"dest with dot dot":  {func(d map[string]any) { d["components"].([]any)[0].(map[string]any)["dest"] = "a/../b" }, "components[0].dest"},
+		"absolute dest":      {func(d map[string]any) { d["components"].([]any)[0].(map[string]any)["dest"] = "/etc" }, "components[0].dest"},
 		"duplicate location": {func(d map[string]any) { d["locations"].([]any)[1].(map[string]any)["id"] = "install" }, "used twice"},
 	}
 	for name, tc := range cases {
@@ -199,5 +211,24 @@ func TestSchemaListsEveryField(t *testing.T) {
 			continue
 		}
 		check("$defs."+name, props(d), typ)
+	}
+}
+
+func TestComponentDefaults(t *testing.T) {
+	m, err := Parse(strings.NewReader(valid))
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := m.Components[0]
+	if c.Kind != ComponentFile || c.Name != "core.zip" {
+		t.Fatalf("defaults: kind %q name %q, want file and the last part of the URL", c.Kind, c.Name)
+	}
+	// A query string is not part of the name.
+	doc := mutate(t, func(d map[string]any) {
+		d["components"].([]any)[0].(map[string]any)["url"] = "https://example.invalid/dl/model.bin?token=abc"
+	})
+	m, err = Parse(strings.NewReader(doc))
+	if err != nil || m.Components[0].Name != "model.bin" {
+		t.Fatalf("name from a URL with a query: %v %+v", err, m)
 	}
 }

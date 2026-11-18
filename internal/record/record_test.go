@@ -207,3 +207,22 @@ func TestKeepLocationKeepsWhatTheInstallerMadeThere(t *testing.T) {
 		t.Fatalf("kept location was touched: %+v", rep)
 	}
 }
+
+func TestOwnerAndRemove(t *testing.T) {
+	root := t.TempDir()
+	r := New("x", "1.0.0", "user", map[string]string{"install": root})
+	f := filepath.Join(root, "a.txt")
+	_ = r.Add(Entry{Path: f, Kind: KindFile, Owner: OwnerAdopted, Location: "install"})
+	if o, ok := r.Owner(f); !ok || o != OwnerAdopted {
+		t.Fatalf("Owner = %q %v", o, ok)
+	}
+	if _, ok := r.Owner(filepath.Join(root, "missing")); ok {
+		t.Fatal("an unrecorded path has no owner")
+	}
+	if !r.Remove(f) || r.Remove(f) {
+		t.Fatal("Remove should report true once, then false")
+	}
+	if len(r.Entries) != 0 {
+		t.Fatalf("entries left: %v", r.Entries)
+	}
+}
