@@ -21,15 +21,15 @@ jobs:
     if: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
           # Go 1.26.0 has a standard-library vulnerability fixed in 1.26.1
           # (GO-2026-4602); "1.26" with check-latest takes the newest patch.
           # See docs/decisions.md.
           go-version: "1.26"
           check-latest: true
-      - uses: golangci/golangci-lint-action@v9
+      - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: v2.15.0
 
@@ -42,8 +42,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
           # Go 1.26.0 has a standard-library vulnerability fixed in 1.26.1
           # (GO-2026-4602); "1.26" with check-latest takes the newest patch.
@@ -67,8 +67,8 @@ jobs:
     if: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
           # Go 1.26.0 has a standard-library vulnerability fixed in 1.26.1
           # (GO-2026-4602); "1.26" with check-latest takes the newest patch.
@@ -85,8 +85,8 @@ jobs:
     if: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
           # Go 1.26.0 has a standard-library vulnerability fixed in 1.26.1
           # (GO-2026-4602); "1.26" with check-latest takes the newest patch.
@@ -104,13 +104,28 @@ jobs:
             /tmp/stellatinus-installer accent "$c"
           done
 
+  pinned-actions:
+    name: Actions are pinned by commit hash
+    if: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Fail on any action that is not pinned by a 40-character hash
+        run: |
+          bad=$(grep -rnE '^\s*-?\s*uses:' .github/workflows | grep -vE 'uses: [^@]+@[0-9a-f]{40}( |$)' || true)
+          if [ -n "$bad" ]; then
+            echo "$bad"
+            echo '::error::pin every action by commit hash with the version in a comment (see docs/decisions.md)'
+            exit 1
+          fi
+
   vulncheck:
     name: Known vulnerabilities in dependencies
     if: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
           # Go 1.26.0 has a standard-library vulnerability fixed in 1.26.1
           # (GO-2026-4602); "1.26" with check-latest takes the newest patch.
@@ -142,8 +157,8 @@ jobs:
       GOOS: ${{ matrix.goos }}
       GOARCH: ${{ matrix.goarch }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
           # Go 1.26.0 has a standard-library vulnerability fixed in 1.26.1
           # (GO-2026-4602); "1.26" with check-latest takes the newest patch.
@@ -156,7 +171,7 @@ jobs:
           go build -trimpath -ldflags "-s -w -X main.version=${{ github.sha }}" \
             -o "dist/stellatinus-installer-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}" ./cmd/stellatinus-installer
           (cd dist && sha256sum * > SHA256SUMS.txt)
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: stellatinus-installer-${{ matrix.goos }}-${{ matrix.goarch }}
           path: dist/
