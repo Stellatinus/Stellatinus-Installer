@@ -161,3 +161,35 @@ func TestBadShortcutRequestsStopBeforeAnything(t *testing.T) {
 		t.Fatal("something was downloaded")
 	}
 }
+
+func TestPackedInstallerSaysWhatItWillDoAndMakesTheDefaultShortcuts(t *testing.T) {
+	r := goodRig(t)
+	home := r.withShortcuts()
+	b, _ := os.ReadFile(r.manifest)
+	var doc map[string]any
+	_ = json.Unmarshal(b, &doc)
+	sc := doc["shortcuts"].(map[string]any)
+	sc["start_menu"] = map[string]any{"offer": true, "default": true}
+	sc["taskbar"] = map[string]any{"offer": true, "default": true} // never made, so never listed
+	b, _ = json.Marshal(doc)
+	if err := os.WriteFile(r.manifest, b, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	exe := packedRig(t, r)
+
+	code, out, _ := r.runPacked(exe, "n\n")
+	if code != exitOK || !strings.Contains(out, "Program: ") || !strings.Contains(out, "Shortcuts: start_menu\n") || !strings.Contains(out, "Nothing was installed") {
+		t.Fatalf("%d\n%s", code, out)
+	}
+	if got := shortcutFiles(t, home); len(got) != 0 {
+		t.Fatalf("a no made %v", got)
+	}
+
+	code, out, errOut := r.runPacked(exe, "y\n")
+	if code != exitOK || !strings.Contains(out, "Shortcut: ") || !strings.Contains(out, "Press Enter to close.") {
+		t.Fatalf("%d\n%s%s", code, out, errOut)
+	}
+	if got := shortcutFiles(t, home); len(got) != 1 {
+		t.Fatalf("want the start menu shortcut, found %v", got)
+	}
+}

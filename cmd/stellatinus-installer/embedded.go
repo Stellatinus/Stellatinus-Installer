@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/Stellatinus/Stellatinus-Installer/internal/manifest"
@@ -35,17 +36,49 @@ func cmdInstallEmbedded(ctx context.Context, d deps, stdout, stderr io.Writer) i
 	if in == nil {
 		in = os.Stdin
 	}
+	rd := bufio.NewReader(in)
 	fprintf(stdout, "%s %s\n", m.App.Name, m.App.Version)
 	if m.App.Description != "" {
 		fprintf(stdout, "%s\n", m.App.Description)
 	}
+	// Say what "the defaults" are before asking, so the answer means something.
+	for _, l := range m.Locations {
+		if p, err := l.DefaultPath(runtime.GOOS, env); err == nil {
+			fprintf(stdout, "  %s: %s\n", m.Text("", "location."+l.ID+".label"), p)
+		}
+	}
+	args := defaultShortcutArgs(m)
+	if len(args) > 0 {
+		fprintf(stdout, "  Shortcuts: %s\n", args[1])
+	}
 	fprint(stdout, "Install it with the default folders? [y/N] ")
-	line, _ := bufio.NewReader(in).ReadString('\n')
+	line, _ := rd.ReadString('\n')
 	if a := strings.ToLower(strings.TrimSpace(line)); a != "y" && a != "yes" {
 		fprintln(stdout, "Nothing was installed.")
 		return exitOK
 	}
-	return cmdInstall(ctx, d, nil, stdout, stderr)
+	code := cmdInstall(ctx, d, args, stdout, stderr)
+	// Started by a double click, the console closes with the program; wait, so
+	// the result can be read. Without a terminal this returns at once.
+	fprint(stdout, "Press Enter to close. ")
+	_, _ = rd.ReadString('\n')
+	return code
+}
+
+// defaultShortcutArgs is the --shortcut option for the shortcuts the manifest
+// ticks by default (the taskbar is never made, so it is left out), or nil.
+func defaultShortcutArgs(m *manifest.Manifest) []string {
+	var places []string
+	if m.Shortcuts.StartMenu.Offer && m.Shortcuts.StartMenu.Default {
+		places = append(places, "start_menu")
+	}
+	if m.Shortcuts.Desktop.Offer && m.Shortcuts.Desktop.Default {
+		places = append(places, "desktop")
+	}
+	if len(places) == 0 {
+		return nil
+	}
+	return []string{"--shortcut", strings.Join(places, ",")}
 }
 
 // cmdPack appends a manifest to an engine and writes the single-file installer.

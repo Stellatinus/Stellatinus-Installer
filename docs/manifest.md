@@ -113,7 +113,7 @@ The update source and trust anchor ([#7](https://github.com/Stellatinus/Stellati
 
 ## Examples
 
-[`examples/`](../examples) has a manifest for each adopter: `haedus.json`, `mira.json` (a port written to `config.json`, settings kept on removal), `polaris.json` and `regulus-desktop.json` (illustrative: those apps do not have packages yet), and `minimal.json`. Their URLs and hashes are fake (`example.invalid`). Every one is checked by the tests: valid, fully translated to Italian, and with default folders that do not overlap on any system.
+[`examples/`](../examples) has a manifest for each adopter, and `stellatinus-demo.json`, the fake app of the [test installers](../README.md#try-it-without-building) (its hashes are filled in by `tools/demo` in CI): `haedus.json`, `mira.json` (a port written to `config.json`, settings kept on removal), `polaris.json` and `regulus-desktop.json` (illustrative: those apps do not have packages yet), and `minimal.json`. Their URLs and hashes are fake (`example.invalid`; the demo points at the test-builds release). Every one is checked by the tests: valid, fully translated to Italian, and with default folders that do not overlap on any system.
 
 ## Anything an app adds later
 

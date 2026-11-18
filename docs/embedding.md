@@ -18,7 +18,7 @@ Because the manifest travels inside the file, the engine and the manifest can ne
 
 | Started as | Does |
 |---|---|
-| `Haedus-Setup.exe` (no arguments) | names the app and asks `Install it with the default folders? [y/N]`; only `y` or `yes` installs. This is the whole interaction until the window exists ([#3](https://github.com/Stellatinus/Stellatinus-Installer/issues/3)) |
+| `Haedus-Setup.exe` (no arguments) | names the app, lists the default folder of each location and the shortcuts the manifest ticks by default (never the taskbar), and asks `Install it with the default folders? [y/N]`; only `y` or `yes` installs, and then it waits for Enter so a console opened by a double click can be read. This is the whole interaction until the window exists ([#3](https://github.com/Stellatinus/Stellatinus-Installer/issues/3)) |
 | `Haedus-Setup.exe install [flags]` | installs the carried manifest; no manifest file is named |
 | `Haedus-Setup.exe check [flags]` | runs the checks for the carried manifest |
 | any command with a file named | uses that file instead |
