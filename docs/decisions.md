@@ -70,9 +70,9 @@ Work is grouped in milestones, in this order. An epic ([#14](https://github.com/
 | Milestone | What it holds | Issues |
 |---|---|---|
 | **M1 Foundations** | repository, manifest format, accent colours, pre-install checks, installation record, first command line, locations design | #1, #12, #15 (done) |
-| **M2 Install and remove (command line, Windows first)** | download and install components, install and uninstall from the command line with a silent mode, the embedding contract, the rest of the manifest, repair, and the real-machine checks of permissions on Windows | #6, #10, #18, #26, #27, #32 (#2, #4, #16, #17, #19 done) |
+| **M2 Install and remove (command line, Windows first)** | download and install components, install and uninstall from the command line with a silent mode, the embedding contract, the rest of the manifest, repair, and the real-machine checks of permissions on Windows | #6, #10, #18, #26, #27, #32, #38, #39, #40, #41 (#2, #4, #16, #17, #19 done; #6, #10, #26 and #32 are built and wait for the real-machine checks #18, #27, #39 and #40) |
 | **M3 Setup window** | the window technology (after a spike), the wizard, accessibility, themes, English and Italian | #3, #5, #29 |
-| **M4 Updates and signing** | the updater, and the signing and trust model | #7, #9 |
+| **M4 Updates and signing** | the updater, restoring the previous version, and the signing and trust model | #7, #9, #42 |
 | **M5 Adopters, Linux and macOS** | Regulus Desktop, Haedus, Mira and Polaris adopt the installer; other systems; the real-machine plan across systems | #11, #13, #33, #35 |
 | **Later: Microsoft Store** | Store builds | #8 |
 

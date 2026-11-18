@@ -115,4 +115,4 @@ With `--json` every line of standard output is one JSON object with an `event`:
 
 ## Not verified on a real machine
 
-The command line is tested against a local HTTPS server on Linux, and compiled and tested on Windows and macOS runners. Real networks, antivirus, Windows file locks, and elevation have not been tried ([#13](https://github.com/Stellatinus/Stellatinus-Installer/issues/13), [#18](https://github.com/Stellatinus/Stellatinus-Installer/issues/18)).
+The command line is tested against a local HTTPS server on Linux, and compiled and tested on Windows and macOS runners. Real networks, antivirus, Windows file locks, and elevation have not been tried ([#13](https://github.com/Stellatinus/Stellatinus-Installer/issues/13), [#18](https://github.com/Stellatinus/Stellatinus-Installer/issues/18)). The shortcuts (the `.lnk` is written by hand) are checked only by reading the bytes back, not by Windows, GNOME, KDE or macOS ([#39](https://github.com/Stellatinus/Stellatinus-Installer/issues/39)); `repair` and the test installers have not run on a real machine ([#40](https://github.com/Stellatinus/Stellatinus-Installer/issues/40)).
