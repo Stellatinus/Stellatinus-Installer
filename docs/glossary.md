@@ -19,6 +19,8 @@ What each term means today. Add new terms here.
 | **Component** | something downloaded while installing, checked against its sha256 |
 | **Partial file** | `.stellatinus-<id>.part`, the file a component is downloaded into; kept if a download drops so it can be resumed, hashed in full at the end, removed on failure |
 | **Response file** | a JSON file with the answers the window would ask (scope and folders), for an installation nobody attends |
+| **Local interface** | the setup window's web interface served on `127.0.0.1` with a single-use address and a session cookie ([window.md](window.md)) |
+| **App window** | a browser window with no tabs or address bar (Edge, Chrome or Chromium `--app`), used to show the local interface |
 | **Rollback** | what the installer does when an installation fails: it removes everything that run created (from the record) and leaves what was there before |
 | **Channel** | `direct` (downloaded from the app's own site) or `store` (Microsoft Store, postponed) |
 | **Wizard** | the setup window with its steps; planned |

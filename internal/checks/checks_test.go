@@ -212,3 +212,36 @@ func TestFormatBytes(t *testing.T) {
 		}
 	}
 }
+
+// The folders an example proposes must not overlap on any system: a manifest
+// whose own defaults fail a check would fail on every machine.
+func TestExampleDefaultsDoNotOverlap(t *testing.T) {
+	files, err := filepath.Glob("../../examples/*.json")
+	if err != nil || len(files) == 0 {
+		t.Fatalf("no examples: %v", err)
+	}
+	env := func(k string) string {
+		return map[string]string{"HOME": "/home/u", "USERPROFILE": "/win/u", "LOCALAPPDATA": "/win/u/AppData/Local"}[k]
+	}
+	for _, f := range files {
+		m, err := manifest.Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, goos := range []string{"windows", "linux", "darwin"} {
+			paths := map[string]string{}
+			var order []string
+			for _, l := range m.Locations {
+				p, err := l.DefaultPath(goos, env)
+				if err != nil {
+					continue
+				}
+				paths[l.ID] = strings.ReplaceAll(p, `\`, "/") // judge a Windows path on any system
+				order = append(order, l.ID)
+			}
+			if r := Overlap(paths, order); !r.Passed() {
+				t.Errorf("%s on %s: %s", filepath.Base(f), goos, r.Detail)
+			}
+		}
+	}
+}

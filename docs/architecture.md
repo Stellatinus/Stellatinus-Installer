@@ -13,6 +13,8 @@ One engine, written in Go, packaged inside each app's own download. The app brin
 | `internal/checks` | privileges, permission to write (by creating and deleting a test file), free space, overlapping folders, an earlier installation; each result says which step to go back to | create folders, keep test files, install |
 | `internal/safepath` | check names and relative paths that come from a manifest or an archive, so they are safe on every system | touch the disk |
 | `internal/install` | download each component (https only, size capped, resumable, sha256 checked), write it, unpack zips safely, record everything, and **roll back** what the run created when something fails | create shortcuts, show anything, choose folders, or update an existing installation |
+| `internal/localui` | serve the setup window's interface on `127.0.0.1`: single-use address, session cookie, Host and Origin checks, security headers | draw the window or decide what the interface does |
+| `internal/opener` | choose how to show the address (an app window of Edge, Chrome or Chromium, else the default browser) and start it | serve anything |
 | `internal/record` | the installation record (every file, folder and shortcut with its owner), the removal plan, and a safe `Apply` | decide what the user wants to keep; the window passes the choices |
 | `cmd/stellatinus-installer` | the command line over the packages above | install or remove anything yet |
 
@@ -48,4 +50,4 @@ A separate process updates direct (non-Store) builds: verify, keep the previous 
 
 ## The setup window (planned)
 
-A web UI embedded in the engine and shown in a system window; it follows the system's light or dark theme, its text is not selectable (path fields and the advanced log are), and it takes its one accent colour from the manifest. The library that shows it is chosen with a spike ([#3](https://github.com/Stellatinus/Stellatinus-Installer/issues/3)). The draft is in [design/wizard-mockup.html](design/wizard-mockup.html).
+A web UI embedded in the engine, served by `internal/localui` and shown by `internal/opener` in an app window of Edge, Chrome or Chromium (else the default browser); it follows the system's light or dark theme, its text is not selectable (path fields and the advanced log are), and it takes its one accent colour from the manifest. The server and the opener are built and tested; the wizard is not, and whether a webview in a separate program is needed is open ([window.md](window.md), [#3](https://github.com/Stellatinus/Stellatinus-Installer/issues/3), [#29](https://github.com/Stellatinus/Stellatinus-Installer/issues/29)). The draft is in [design/wizard-mockup.html](design/wizard-mockup.html).
