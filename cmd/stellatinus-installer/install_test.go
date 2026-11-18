@@ -8,11 +8,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"io/fs"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -482,5 +484,100 @@ func TestARollbackThatCannotFinishExitsWith4AndKeepsTheRecord(t *testing.T) {
 	}
 	if len(rec.Entries) == 0 || len(rec.Entries) > 3 {
 		t.Fatalf("the record should list only what is left, has %d entries: %v", len(rec.Entries), rec.Entries)
+	}
+}
+
+// withPort rewrites the rig's manifest to ask for a port and write it to a
+// config file in the install folder.
+func (r *rig) withPort(def int) {
+	r.t.Helper()
+	b, err := os.ReadFile(r.manifest)
+	if err != nil {
+		r.t.Fatal(err)
+	}
+	var doc map[string]any
+	if err := json.Unmarshal(b, &doc); err != nil {
+		r.t.Fatal(err)
+	}
+	doc["options"] = []any{map[string]any{"id": "port", "label": "Port", "kind": "port", "default": def}}
+	doc["config"] = []any{map[string]any{"location": "install", "name": "config.json", "format": "json", "values": map[string]any{"port": "port"}}}
+	b, _ = json.Marshal(doc)
+	if err := os.WriteFile(r.manifest, b, 0o600); err != nil {
+		r.t.Fatal(err)
+	}
+}
+
+func freePort(t *testing.T) int {
+	t.Helper()
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Skipf("cannot listen here: %v", err)
+	}
+	p := ln.Addr().(*net.TCPAddr).Port
+	_ = ln.Close()
+	return p
+}
+
+func TestAnOptionIsAnsweredWrittenAndRemoved(t *testing.T) {
+	r := goodRig(t)
+	r.withPort(5080)
+	port := freePort(t)
+	before := tree(t, r.root)
+	code, out, errOut := r.run(r.args("--option", "port="+strconv.Itoa(port))...)
+	if code != exitOK {
+		t.Fatalf("%d\n%s%s", code, out, errOut)
+	}
+	b, err := os.ReadFile(filepath.Join(r.app, "config.json"))
+	if err != nil || !strings.Contains(string(b), strconv.Itoa(port)) {
+		t.Fatalf("config.json = %s (%v)", b, err)
+	}
+	if !strings.Contains(out, "Port 5080") && !strings.Contains(out, "is free") {
+		t.Fatalf("the port check was not shown:\n%s", out)
+	}
+	if code, _, e := r.run("uninstall", "--yes", "--silent", "demo"); code != exitOK {
+		t.Fatalf("%d %s", code, e)
+	}
+	if !same(tree(t, r.root), before) {
+		t.Fatal("the config file was left behind")
+	}
+}
+
+func TestABusyPortStopsBeforeAnything(t *testing.T) {
+	r := goodRig(t)
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Skipf("cannot listen here: %v", err)
+	}
+	defer func() { _ = ln.Close() }()
+	busy := ln.Addr().(*net.TCPAddr).Port
+	r.withPort(busy) // the default itself is taken
+	before := tree(t, r.root)
+	code, out, errOut := r.run(r.args()...)
+	if code != exitProblem || !strings.Contains(out, "FAIL") || !strings.Contains(out, "cannot be used") || !strings.Contains(errOut, "nothing was installed") {
+		t.Fatalf("%d\n%s%s", code, out, errOut)
+	}
+	if r.hits.Load() != 0 || !same(tree(t, r.root), before) {
+		t.Fatal("something happened although the port was busy")
+	}
+}
+
+func TestBadOptionFlagsAreUsageErrors(t *testing.T) {
+	r := goodRig(t)
+	r.withPort(5080)
+	for name, extra := range map[string][]string{
+		"not a number":   {"--option", "port=abc"},
+		"no equals sign": {"--option", "port"},
+		"unknown option": {"--option", "nope=1"},
+	} {
+		if code, _, _ := r.run(r.args(extra...)...); code != exitUsage {
+			t.Errorf("%s: exit %d, want %d", name, code, exitUsage)
+		}
+	}
+	// A privileged port is refused by the engine before any download.
+	if code, _, _ := r.run(r.args("--option", "port=80")...); code == exitOK {
+		t.Errorf("port 80 accepted (exit %d)", code)
+	}
+	if r.hits.Load() != 0 {
+		t.Error("a bad answer downloaded something")
 	}
 }

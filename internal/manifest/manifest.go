@@ -62,22 +62,29 @@ const (
 
 // Manifest is the whole file.
 type Manifest struct {
-	SchemaVersion int         `json:"schema_version"`
-	App           App         `json:"app"`
-	Channel       string      `json:"channel,omitempty"`
-	Scope         string      `json:"scope,omitempty"`
-	AllowMachine  bool        `json:"allow_machine,omitempty"`
-	Locations     []Location  `json:"locations"`
-	Components    []Component `json:"components,omitempty"`
-	Shortcuts     Shortcuts   `json:"shortcuts,omitempty"`
+	SchemaVersion int          `json:"schema_version"`
+	App           App          `json:"app"`
+	Channel       string       `json:"channel,omitempty"`
+	Scope         string       `json:"scope,omitempty"`
+	AllowMachine  bool         `json:"allow_machine,omitempty"`
+	Locations     []Location   `json:"locations"`
+	Components    []Component  `json:"components,omitempty"`
+	Options       []Option     `json:"options,omitempty"`
+	Config        []ConfigFile `json:"config,omitempty"`
+	Shortcuts     Shortcuts    `json:"shortcuts,omitempty"`
+	// Texts holds translations: language code, then text key, then the text.
+	// English is the base, written in the fields themselves.
+	Texts map[string]map[string]string `json:"texts,omitempty"`
 }
 
 // App identifies the app and sets its look.
 type App struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	Version   string `json:"version"`
-	Publisher string `json:"publisher,omitempty"`
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Version string `json:"version"`
+	// Description is one sentence the wizard shows on its first screen.
+	Description string `json:"description,omitempty"`
+	Publisher   string `json:"publisher,omitempty"`
 	// Accent is one #rrggbb colour; the installer derives every other colour
 	// from it (see package theme).
 	Accent string `json:"accent"`
@@ -117,6 +124,9 @@ type Component struct {
 	// Dest is a sub-folder of the location, written with "/"; empty means the
 	// location itself.
 	Dest string `json:"dest,omitempty"`
+	// Platforms limits the component to some systems: "windows", "linux" or
+	// "darwin", optionally with "/amd64" or "/arm64". Empty means every system.
+	Platforms []string `json:"platforms,omitempty"`
 }
 
 // Shortcut is one place a shortcut can be offered.
@@ -332,6 +342,8 @@ func (m *Manifest) Validate() error {
 		}
 	}
 
+	m.validateExtras(add, ids, cids)
+
 	if len(iss) > 0 {
 		return &Error{Issues: iss}
 	}
@@ -346,17 +358,6 @@ func (m *Manifest) Location(id string) (Location, bool) {
 		}
 	}
 	return Location{}, false
-}
-
-// NeedBytes returns how many bytes the components stored in a location need.
-func (m *Manifest) NeedBytes(locationID string) int64 {
-	var n int64
-	for _, c := range m.Components {
-		if c.Location == locationID {
-			n += c.Size
-		}
-	}
-	return n
 }
 
 // DefaultPath returns the proposed path of a location on a system, with

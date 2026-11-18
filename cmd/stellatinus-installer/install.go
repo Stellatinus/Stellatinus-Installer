@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/Stellatinus/Stellatinus-Installer/internal/checks"
@@ -40,6 +41,35 @@ type deps struct {
 type response struct {
 	Scope     string            `json:"scope,omitempty"`
 	Locations map[string]string `json:"locations,omitempty"`
+	Options   map[string]int    `json:"options,omitempty"`
+}
+
+// parseAnswers combines the response file's options with --option id=value
+// (the flag wins) and checks that each names an option of the manifest.
+func parseAnswers(m *manifest.Manifest, fromFile map[string]int, sets []string) (map[string]int, error) {
+	known := map[string]bool{}
+	for _, o := range m.Options {
+		known[o.ID] = true
+	}
+	out := map[string]int{}
+	for id, v := range fromFile {
+		if !known[id] {
+			return nil, fmt.Errorf("the response file: %q is not an option of this manifest", id)
+		}
+		out[id] = v
+	}
+	for _, s := range sets {
+		id, val, ok := strings.Cut(s, "=")
+		n, err := strconv.Atoi(val)
+		if !ok || err != nil {
+			return nil, fmt.Errorf("--option %q: expected id=number", s)
+		}
+		if !known[id] {
+			return nil, fmt.Errorf("--option %q: %q is not an option of this manifest", s, id)
+		}
+		out[id] = n
+	}
+	return out, nil
 }
 
 func readResponse(path string) (*response, error) {
@@ -157,8 +187,9 @@ func cmdInstall(ctx context.Context, d deps, args []string, stdout, stderr io.Wr
 	asJSON := fs.Bool("json", false, "print one JSON event per line")
 	silent := fs.Bool("silent", false, "print nothing but errors")
 	dry := fs.Bool("dry-run", false, "run the checks and show what would be downloaded, change nothing")
-	var sets listFlag
+	var sets, optSets listFlag
 	fs.Var(&sets, "set", "location=path, to choose a folder instead of the default (repeatable)")
+	fs.Var(&optSets, "option", "id=number, to answer an option such as a port (repeatable)")
 	if err := fs.Parse(args); err != nil {
 		return exitUsage
 	}
@@ -179,6 +210,11 @@ func cmdInstall(ctx context.Context, d deps, args []string, stdout, stderr io.Wr
 			return pr.fail(exitProblem, nil, err.Error())
 		}
 		resp = *r
+	}
+
+	answers, err := parseAnswers(m, resp.Options, optSets)
+	if err != nil {
+		return pr.fail(exitUsage, nil, err.Error())
 	}
 
 	sc := m.Scope
@@ -235,7 +271,7 @@ func cmdInstall(ctx context.Context, d deps, args []string, stdout, stderr io.Wr
 	}
 
 	// The checks come first: if one fails, nothing is installed.
-	results := checks.Run(m, paths, checks.Options{Scope: sc, Elevated: checks.Elevated(), RecordPath: recPath})
+	results := checks.Run(m, paths, checks.Options{Scope: sc, Elevated: checks.Elevated(), RecordPath: recPath, Answers: answers})
 	failed := 0
 	for _, r := range results {
 		pr.event("check", map[string]any{"result": r})
@@ -255,15 +291,18 @@ func cmdInstall(ctx context.Context, d deps, args []string, stdout, stderr io.Wr
 	if *dry {
 		pr.say("")
 		pr.say("Dry run: nothing was changed. This would install %s %s for the %s:", m.App.Name, m.App.Version, sc)
-		for _, c := range m.Components {
+		for _, c := range m.ComponentsFor(runtime.GOOS, runtime.GOARCH) {
 			pr.say("  %s (%s) from %s into %s", c.Label, checks.FormatBytes(c.Size), c.URL, paths[c.Location])
+		}
+		for _, cf := range m.Config {
+			pr.say("  would write %s in %s", cf.Name, paths[cf.Location])
 		}
 		pr.event("result", map[string]any{"ok": true, "dry_run": true, "exit": exitOK})
 		return exitOK
 	}
 
 	opt := install.Options{
-		Client: d.client, Paths: paths, Scope: sc, RecordPath: recPath,
+		Client: d.client, Paths: paths, Scope: sc, RecordPath: recPath, Answers: answers,
 		Events: pr.progress,
 		Log: func(s string) {
 			pr.event("log", map[string]any{"message": s})

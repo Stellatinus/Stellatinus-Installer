@@ -1,13 +1,30 @@
 {
   "schema_version": 1,
-  "app": { "id": "demo", "name": "Demo", "version": "0.1.0", "accent": "#2f6df6" },
+  "app": {
+    "id": "demo",
+    "name": "Demo",
+    "version": "0.1.0",
+    "accent": "#2f6df6",
+    "description": "A minimal app with one folder and nothing to download."
+  },
   "locations": [
     {
       "id": "install",
       "label": "Program",
       "kind": "install",
       "required": true,
-      "default": { "windows": "${LOCALAPPDATA}\\Demo", "linux": "${HOME}/.local/share/demo", "darwin": "${HOME}/Applications/Demo" }
+      "default": {
+        "windows": "${LOCALAPPDATA}\\Demo",
+        "linux": "${HOME}/.local/share/demo",
+        "darwin": "${HOME}/Applications/Demo"
+      }
     }
-  ]
+  ],
+  "texts": {
+    "it": {
+      "app.name": "Demo",
+      "app.description": "Un'app minima con una sola cartella e nulla da scaricare.",
+      "location.install.label": "Programma"
+    }
+  }
 }

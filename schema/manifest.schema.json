@@ -5,81 +5,331 @@
   "description": "What an app tells the installer. Format version 1. The Go code (internal/manifest) is the authority; a test keeps this file in step with it.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "app", "locations"],
+  "required": [
+    "schema_version",
+    "app",
+    "locations"
+  ],
   "properties": {
-    "schema_version": { "const": 1 },
-    "app": { "$ref": "#/$defs/app" },
-    "channel": { "enum": ["direct", "store"], "default": "direct" },
-    "scope": { "enum": ["user", "machine"], "default": "user" },
-    "allow_machine": { "type": "boolean" },
-    "locations": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/location" } },
-    "components": { "type": "array", "items": { "$ref": "#/$defs/component" } },
-    "shortcuts": { "$ref": "#/$defs/shortcuts" }
+    "schema_version": {
+      "const": 1
+    },
+    "app": {
+      "$ref": "#/$defs/app"
+    },
+    "channel": {
+      "enum": [
+        "direct",
+        "store"
+      ],
+      "default": "direct"
+    },
+    "scope": {
+      "enum": [
+        "user",
+        "machine"
+      ],
+      "default": "user"
+    },
+    "allow_machine": {
+      "type": "boolean"
+    },
+    "locations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/location"
+      }
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/component"
+      }
+    },
+    "shortcuts": {
+      "$ref": "#/$defs/shortcuts"
+    },
+    "options": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/option"
+      }
+    },
+    "config": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/config_file"
+      }
+    },
+    "texts": {
+      "type": "object",
+      "description": "Translations: language code, then text key, then the text. English is the base, written in the fields themselves.",
+      "propertyNames": {
+        "pattern": "^[a-z]{2,3}(-[A-Z]{2})?$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        }
+      }
+    }
   },
   "$defs": {
     "app": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "name", "version", "accent"],
+      "required": [
+        "id",
+        "name",
+        "version",
+        "accent"
+      ],
       "properties": {
-        "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,31}$" },
-        "name": { "type": "string", "minLength": 1 },
-        "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$" },
-        "publisher": { "type": "string" },
-        "accent": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$", "description": "One colour; the installer derives the rest and refuses a colour it cannot make legible (WCAG AA)." },
-        "logo": { "type": "string" }
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{1,31}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$"
+        },
+        "publisher": {
+          "type": "string"
+        },
+        "accent": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "One colour; the installer derives the rest and refuses a colour it cannot make legible (WCAG AA)."
+        },
+        "logo": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "description": "One sentence the wizard shows on its first screen."
+        }
       }
     },
     "location": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "label", "kind", "default"],
+      "required": [
+        "id",
+        "label",
+        "kind",
+        "default"
+      ],
       "properties": {
-        "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,31}$" },
-        "label": { "type": "string", "minLength": 1 },
-        "kind": { "enum": ["install", "models", "output", "data"] },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,31}$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "install",
+            "models",
+            "output",
+            "data"
+          ]
+        },
         "default": {
           "type": "object",
           "minProperties": 1,
-          "propertyNames": { "enum": ["windows", "linux", "darwin"] },
-          "additionalProperties": { "type": "string", "minLength": 1 }
+          "propertyNames": {
+            "enum": [
+              "windows",
+              "linux",
+              "darwin"
+            ]
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
         },
-        "required": { "type": "boolean" },
-        "adopt": { "type": "boolean", "description": "The user may point at a folder that already has content; it is used where it is and never deleted." },
-        "on_uninstall": { "enum": ["remove", "keep", "ask"], "default": "ask" }
+        "required": {
+          "type": "boolean"
+        },
+        "adopt": {
+          "type": "boolean",
+          "description": "The user may point at a folder that already has content; it is used where it is and never deleted."
+        },
+        "on_uninstall": {
+          "enum": [
+            "remove",
+            "keep",
+            "ask"
+          ],
+          "default": "ask"
+        }
       }
     },
     "component": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "label", "url", "sha256", "size", "location"],
+      "required": [
+        "id",
+        "label",
+        "url",
+        "sha256",
+        "size",
+        "location"
+      ],
       "properties": {
-        "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,31}$" },
-        "label": { "type": "string", "minLength": 1, "description": "Shown above the progress bar, for example 'the core'." },
-        "url": { "type": "string", "pattern": "^https://" },
-        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
-        "size": { "type": "integer", "minimum": 1, "description": "Bytes of the download; it caps the download and feeds the free-space check." },
-        "location": { "type": "string", "description": "The id of the location this component is stored in." },
-        "kind": { "enum": ["file", "zip"], "default": "file", "description": "A single file, or a zip archive that is unpacked." },
-        "name": { "type": "string", "description": "File name for kind file; by default the last part of the URL." },
-        "dest": { "type": "string", "description": "A sub-folder of the location, written with '/'." }
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,31}$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Shown above the progress bar, for example 'the core'."
+        },
+        "url": {
+          "type": "string",
+          "pattern": "^https://"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Bytes of the download; it caps the download and feeds the free-space check."
+        },
+        "location": {
+          "type": "string",
+          "description": "The id of the location this component is stored in."
+        },
+        "kind": {
+          "enum": [
+            "file",
+            "zip"
+          ],
+          "default": "file",
+          "description": "A single file, or a zip archive that is unpacked."
+        },
+        "name": {
+          "type": "string",
+          "description": "File name for kind file; by default the last part of the URL."
+        },
+        "dest": {
+          "type": "string",
+          "description": "A sub-folder of the location, written with '/'."
+        },
+        "platforms": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(windows|linux|darwin)(/(amd64|arm64))?$"
+          },
+          "description": "Limits the component to some systems; empty means every system."
+        }
       }
     },
     "shortcut": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "offer": { "type": "boolean" },
-        "default": { "type": "boolean" }
+        "offer": {
+          "type": "boolean"
+        },
+        "default": {
+          "type": "boolean"
+        }
       }
     },
     "shortcuts": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "start_menu": { "$ref": "#/$defs/shortcut" },
-        "taskbar": { "$ref": "#/$defs/shortcut", "description": "Best effort: Windows has no supported way to pin from an installer." },
-        "desktop": { "$ref": "#/$defs/shortcut" }
+        "start_menu": {
+          "$ref": "#/$defs/shortcut"
+        },
+        "taskbar": {
+          "$ref": "#/$defs/shortcut",
+          "description": "Best effort: Windows has no supported way to pin from an installer."
+        },
+        "desktop": {
+          "$ref": "#/$defs/shortcut"
+        }
+      }
+    },
+    "option": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "kind",
+        "default"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,31}$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "port"
+          ]
+        },
+        "default": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 65535,
+          "description": "For a port; a lower one needs privileges."
+        }
+      }
+    },
+    "config_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "location",
+        "name",
+        "format",
+        "values"
+      ],
+      "properties": {
+        "location": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "format": {
+          "enum": [
+            "json"
+          ]
+        },
+        "values": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "description": "The id of an option."
+          },
+          "description": "Maps a key in the file to an option id. The file is never written over one that exists."
+        }
       }
     }
   }

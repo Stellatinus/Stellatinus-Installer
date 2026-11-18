@@ -1,6 +1,7 @@
 package checks
 
 import (
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -140,7 +141,7 @@ func TestRunWithTheHaedusExample(t *testing.T) {
 		"output":  filepath.Join(root, "out"),
 	}
 	// The example needs about 1.4 GB; skip the space part on a tiny disk.
-	results := Run(m, paths, Options{Scope: manifest.ScopeUser, RecordPath: filepath.Join(root, "record.json")})
+	results := Run(m, paths, Options{Scope: manifest.ScopeUser, RecordPath: filepath.Join(root, "record.json"), GOOS: "windows", GOARCH: "amd64"})
 	var ids []string
 	for _, r := range results {
 		ids = append(ids, r.ID)
@@ -243,5 +244,52 @@ func TestExampleDefaultsDoNotOverlap(t *testing.T) {
 				t.Errorf("%s on %s: %s", filepath.Base(f), goos, r.Detail)
 			}
 		}
+	}
+}
+
+func TestPortFreeReallyListens(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Skipf("cannot listen here: %v", err)
+	}
+	port := ln.Addr().(*net.TCPAddr).Port
+	r := PortFree("port", port)
+	if r.Passed() || r.Fix != FixChooseOption || r.GoBack != "option:port" || !strings.Contains(r.Detail, "cannot be used") {
+		t.Fatalf("a port in use must fail and point back to the question: %+v", r)
+	}
+	_ = ln.Close()
+	if r := PortFree("port", port); !r.Passed() {
+		t.Fatalf("a port that was released should be free: %+v", r)
+	}
+	for _, bad := range []int{0, -1, 70000} {
+		if r := PortFree("port", bad); r.Passed() {
+			t.Errorf("port %d was accepted", bad)
+		}
+	}
+}
+
+func TestRunChecksThePortAndOnlyThisSystemsSpace(t *testing.T) {
+	m, err := manifest.Load("../../examples/haedus.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.Options = []manifest.Option{{ID: "port", Label: "Port", Kind: manifest.OptionPort, Default: 5080}}
+	root := t.TempDir()
+	paths := map[string]string{"install": filepath.Join(root, "p"), "models": filepath.Join(root, "m"), "output": filepath.Join(root, "o")}
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Skipf("cannot listen here: %v", err)
+	}
+	defer func() { _ = ln.Close() }()
+	busy := ln.Addr().(*net.TCPAddr).Port
+	results := Run(m, paths, Options{Answers: map[string]int{"port": busy}})
+	var got *Result
+	for i := range results {
+		if results[i].ID == "port:port" {
+			got = &results[i]
+		}
+	}
+	if got == nil || got.Passed() {
+		t.Fatalf("the busy port was not reported: %+v", results)
 	}
 }

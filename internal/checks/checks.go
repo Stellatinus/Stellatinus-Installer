@@ -10,9 +10,11 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/Stellatinus/Stellatinus-Installer/internal/manifest"
@@ -32,6 +34,7 @@ const (
 const (
 	FixElevate      = "elevate"       // restart as administrator
 	FixChooseFolder = "choose-folder" // go back to the step of Result.GoBack
+	FixChooseOption = "choose-option" // go back to the question "option:<id>" in Result.GoBack
 )
 
 // Result is one line in the checks screen.
@@ -186,6 +189,26 @@ func Overlap(paths map[string]string, order []string) Result {
 	return Result{ID: "overlap", Title: "The folders do not overlap", Status: OK, Detail: "Each folder is separate."}
 }
 
+// PortFree checks that a port can be listened on at 127.0.0.1, by really
+// listening on it for a moment: a number that looks fine can still be taken by
+// another program or refused by the system.
+func PortFree(id string, port int) Result {
+	r := Result{ID: "port:" + id, Title: "The port is free", Status: OK}
+	fail := func(title, detail string) Result {
+		return Result{ID: "port:" + id, Title: title, Status: Failed, Detail: detail, Fix: FixChooseOption, GoBack: "option:" + id}
+	}
+	if port < 1 || port > 65535 {
+		return fail("Not a valid port", fmt.Sprintf("%d is not a port number (1 to 65535).", port))
+	}
+	ln, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(port)))
+	if err != nil {
+		return fail("The port is in use or not allowed", fmt.Sprintf("Port %d cannot be used: %s.", port, reason(err)))
+	}
+	_ = ln.Close()
+	r.Detail = fmt.Sprintf("Port %d is free.", port)
+	return r
+}
+
 // Existing warns when an installation record is already there.
 func Existing(recordPath string) Result {
 	if _, err := os.Stat(recordPath); err == nil {
@@ -200,6 +223,11 @@ type Options struct {
 	Scope      string
 	Elevated   bool
 	RecordPath string // empty skips the existing-installation check
+	// GOOS and GOARCH choose which components count (default: this system).
+	GOOS, GOARCH string
+	// Answers holds the value of each option by id; a missing one uses the
+	// manifest's default.
+	Answers map[string]int
 }
 
 // Run performs every check for a manifest and the folders the user chose
@@ -209,6 +237,13 @@ func Run(m *manifest.Manifest, paths map[string]string, opt Options) []Result {
 	if scope == "" {
 		scope = m.Scope
 	}
+	goos, goarch := opt.GOOS, opt.GOARCH
+	if goos == "" {
+		goos = runtime.GOOS
+	}
+	if goarch == "" {
+		goarch = runtime.GOARCH
+	}
 	out := []Result{Privileges(scope, opt.Elevated)}
 	order := make([]string, 0, len(m.Locations))
 	for _, l := range m.Locations {
@@ -217,7 +252,7 @@ func Run(m *manifest.Manifest, paths map[string]string, opt Options) []Result {
 		if !ok {
 			continue
 		}
-		need := m.NeedBytes(l.ID)
+		need := m.NeedBytesFor(l.ID, goos, goarch)
 		readOnly := l.Kind == manifest.KindModels && l.Adopt && need == 0
 		if readOnly {
 			if _, err := os.Stat(dir); err == nil {
@@ -231,6 +266,16 @@ func Run(m *manifest.Manifest, paths map[string]string, opt Options) []Result {
 		}
 	}
 	out = append(out, Overlap(paths, order))
+	for _, o := range m.Options {
+		if o.Kind != manifest.OptionPort {
+			continue
+		}
+		v, ok := opt.Answers[o.ID]
+		if !ok {
+			v = o.Default
+		}
+		out = append(out, PortFree(o.ID, v))
+	}
 	if opt.RecordPath != "" {
 		out = append(out, Existing(opt.RecordPath))
 	}

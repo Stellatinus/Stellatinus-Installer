@@ -36,7 +36,7 @@ func TestParseValidAppliesDefaults(t *testing.T) {
 	if m.Locations[0].OnUninstall != OnUninstallAsk {
 		t.Fatalf("on_uninstall default = %q", m.Locations[0].OnUninstall)
 	}
-	if got := m.NeedBytes("install"); got != 1000 {
+	if got := m.NeedBytesFor("install", "linux", "amd64"); got != 1000 {
 		t.Fatalf("NeedBytes = %d", got)
 	}
 }
@@ -90,8 +90,48 @@ func TestRejects(t *testing.T) {
 			c := d["components"].([]any)[0].(map[string]any)
 			c["kind"], c["name"] = "zip", "x.zip"
 		}, "only for kind"},
-		"dest with dot dot":  {func(d map[string]any) { d["components"].([]any)[0].(map[string]any)["dest"] = "a/../b" }, "components[0].dest"},
-		"absolute dest":      {func(d map[string]any) { d["components"].([]any)[0].(map[string]any)["dest"] = "/etc" }, "components[0].dest"},
+		"dest with dot dot": {func(d map[string]any) { d["components"].([]any)[0].(map[string]any)["dest"] = "a/../b" }, "components[0].dest"},
+		"absolute dest":     {func(d map[string]any) { d["components"].([]any)[0].(map[string]any)["dest"] = "/etc" }, "components[0].dest"},
+		"bad platform": {func(d map[string]any) {
+			d["components"].([]any)[0].(map[string]any)["platforms"] = []any{"windows/x86"}
+		}, "platforms"},
+		"bad option kind": {func(d map[string]any) {
+			d["options"] = []any{map[string]any{"id": "p", "label": "P", "kind": "text", "default": 5080}}
+		}, "options[0].kind"},
+		"a privileged default port": {func(d map[string]any) {
+			d["options"] = []any{map[string]any{"id": "p", "label": "P", "kind": "port", "default": 80}}
+		}, "1024 to 65535"},
+		"the same option twice": {func(d map[string]any) {
+			o := map[string]any{"id": "p", "label": "P", "kind": "port", "default": 5080}
+			d["options"] = []any{o, o}
+		}, "used twice"},
+		"config naming no option": {func(d map[string]any) {
+			d["config"] = []any{map[string]any{"location": "install", "name": "c.json", "format": "json", "values": map[string]any{"port": "nope"}}}
+		}, "not an option"},
+		"config in no location": {func(d map[string]any) {
+			d["options"] = []any{map[string]any{"id": "p", "label": "P", "kind": "port", "default": 5080}}
+			d["config"] = []any{map[string]any{"location": "nowhere", "name": "c.json", "format": "json", "values": map[string]any{"port": "p"}}}
+		}, "config[0].location"},
+		"config with a bad name": {func(d map[string]any) {
+			d["options"] = []any{map[string]any{"id": "p", "label": "P", "kind": "port", "default": 5080}}
+			d["config"] = []any{map[string]any{"location": "install", "name": "../c.json", "format": "json", "values": map[string]any{"port": "p"}}}
+		}, "config[0].name"},
+		"config in an unknown format": {func(d map[string]any) {
+			d["options"] = []any{map[string]any{"id": "p", "label": "P", "kind": "port", "default": 5080}}
+			d["config"] = []any{map[string]any{"location": "install", "name": "c.xml", "format": "xml", "values": map[string]any{"port": "p"}}}
+		}, "config[0].format"},
+		"English in texts": {func(d map[string]any) {
+			d["texts"] = map[string]any{"en": map[string]any{"app.name": "x"}}
+		}, "English is the base"},
+		"a bad language code": {func(d map[string]any) {
+			d["texts"] = map[string]any{"Italian": map[string]any{"app.name": "x"}}
+		}, "language code"},
+		"a text for nothing": {func(d map[string]any) {
+			d["texts"] = map[string]any{"it": map[string]any{"location.nowhere.label": "x"}}
+		}, "does not name a text"},
+		"an empty text": {func(d map[string]any) {
+			d["texts"] = map[string]any{"it": map[string]any{"app.name": ""}}
+		}, "1 to 300 characters"},
 		"duplicate location": {func(d map[string]any) { d["locations"].([]any)[1].(map[string]any)["id"] = "install" }, "used twice"},
 	}
 	for name, tc := range cases {
@@ -204,6 +244,7 @@ func TestSchemaListsEveryField(t *testing.T) {
 	for name, typ := range map[string]reflect.Type{
 		"app": reflect.TypeOf(App{}), "location": reflect.TypeOf(Location{}), "component": reflect.TypeOf(Component{}),
 		"shortcuts": reflect.TypeOf(Shortcuts{}), "shortcut": reflect.TypeOf(Shortcut{}),
+		"option": reflect.TypeOf(Option{}), "config_file": reflect.TypeOf(ConfigFile{}),
 	} {
 		d, ok := defs[name].(map[string]any)
 		if !ok {
@@ -230,5 +271,98 @@ func TestComponentDefaults(t *testing.T) {
 	m, err = Parse(strings.NewReader(doc))
 	if err != nil || m.Components[0].Name != "model.bin" {
 		t.Fatalf("name from a URL with a query: %v %+v", err, m)
+	}
+}
+
+func TestTextFallsBackToEnglish(t *testing.T) {
+	doc := mutate(t, func(d map[string]any) {
+		d["app"].(map[string]any)["description"] = "Turns speech into text."
+		d["texts"] = map[string]any{
+			"it":    map[string]any{"app.description": "Trasforma la voce in testo.", "location.models.label": "Modelli IA"},
+			"pt":    map[string]any{"app.description": "Transforma fala em texto."},
+			"pt-BR": map[string]any{"location.models.label": "Modelos de IA"},
+		}
+	})
+	m, err := Parse(strings.NewReader(doc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct{ lang, key, want string }{
+		{"", "app.description", "Turns speech into text."},
+		{"en", "app.description", "Turns speech into text."},
+		{"it", "app.description", "Trasforma la voce in testo."},
+		{"it", "location.models.label", "Modelli IA"},
+		{"it", "location.install.label", "Program"},                 // not translated: English
+		{"it-IT", "app.description", "Trasforma la voce in testo."}, // region falls back to the language
+		{"pt-BR", "location.models.label", "Modelos de IA"},
+		{"pt-BR", "app.description", "Transforma fala em texto."}, // pt-BR has none: falls back to pt
+		{"fr", "app.description", "Turns speech into text."},
+		{"it", "no.such.key", ""},
+	} {
+		if got := m.Text(c.lang, c.key); got != c.want {
+			t.Errorf("Text(%q, %q) = %q, want %q", c.lang, c.key, got, c.want)
+		}
+	}
+	missing := m.MissingTexts("it")
+	if len(missing) == 0 || missing[0] > missing[len(missing)-1] {
+		t.Fatalf("MissingTexts(it) = %v", missing)
+	}
+	for _, k := range missing {
+		if k == "app.description" || k == "location.models.label" {
+			t.Errorf("%s is translated but reported missing", k)
+		}
+	}
+}
+
+func TestComponentsForASystem(t *testing.T) {
+	doc := mutate(t, func(d map[string]any) {
+		mk := func(id string, plat ...any) map[string]any {
+			c := map[string]any{"id": id, "label": id, "url": "https://example.invalid/" + id, "sha256": strings.Repeat("a", 64), "size": 10, "location": "install", "kind": "zip"}
+			if plat != nil {
+				c["platforms"] = plat
+			}
+			return c
+		}
+		d["components"] = []any{mk("all"), mk("win", "windows"), mk("winarm", "windows/arm64"), mk("linux", "linux", "darwin/arm64")}
+	})
+	m, err := Parse(strings.NewReader(doc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ids := func(goos, goarch string) string {
+		var out []string
+		for _, c := range m.ComponentsFor(goos, goarch) {
+			out = append(out, c.ID)
+		}
+		return strings.Join(out, ",")
+	}
+	for _, c := range []struct{ goos, goarch, want string }{
+		{"windows", "amd64", "all,win"},
+		{"windows", "arm64", "all,win,winarm"},
+		{"linux", "amd64", "all,linux"},
+		{"darwin", "arm64", "all,linux"},
+		{"darwin", "amd64", "all"},
+	} {
+		if got := ids(c.goos, c.goarch); got != c.want {
+			t.Errorf("%s/%s: %s, want %s", c.goos, c.goarch, got, c.want)
+		}
+	}
+	if got := m.NeedBytesFor("install", "windows", "amd64"); got != 20 {
+		t.Errorf("NeedBytesFor windows/amd64 = %d, want 20", got)
+	}
+}
+
+// The projects' own apps are bilingual: every example has an Italian text for
+// everything that has an English one.
+func TestExamplesAreFullyTranslatedToItalian(t *testing.T) {
+	files, _ := filepath.Glob("../../examples/*.json")
+	for _, f := range files {
+		m, err := Load(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if missing := m.MissingTexts("it"); len(missing) != 0 {
+			t.Errorf("%s has no Italian text for %v", filepath.Base(f), missing)
+		}
 	}
 }

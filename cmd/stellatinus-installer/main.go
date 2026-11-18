@@ -35,9 +35,9 @@ Usage:
   stellatinus-installer version
   stellatinus-installer validate <manifest.json>
   stellatinus-installer accent <#rrggbb>
-  stellatinus-installer check [--scope user|machine] [--set location=path]... [--record file] [--json] <manifest.json>
+  stellatinus-installer check [--scope user|machine] [--set location=path]... [--option id=number]... [--record file] [--json] <manifest.json>
   stellatinus-installer plan [--keep-location id]... [--keep-path path]... [--json] <record.json>
-  stellatinus-installer install [--scope user|machine] [--set location=path]... [--response file] [--silent] [--json] [--dry-run] <manifest.json>
+  stellatinus-installer install [--scope user|machine] [--set location=path]... [--option id=number]... [--response file] [--silent] [--json] [--dry-run] <manifest.json>
   stellatinus-installer uninstall [--scope user|machine] [--keep-location id]... [--keep-path path]... [--yes] [--silent] [--json] <record.json | app-id>
 
 Options go before the file name. "uninstall" only shows the plan unless --yes is given.
@@ -161,8 +161,9 @@ func cmdCheck(args []string, stdout, stderr io.Writer) int {
 	scope := fs.String("scope", "", "user or machine (default: the manifest's)")
 	recordPath := fs.String("record", "", "installation record to look for an earlier installation")
 	asJSON := fs.Bool("json", false, "print the results as JSON")
-	var sets listFlag
+	var sets, optSets listFlag
 	fs.Var(&sets, "set", "location=path, to choose a folder instead of the default (repeatable)")
+	fs.Var(&optSets, "option", "id=number, to answer an option such as a port (repeatable)")
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}
@@ -201,7 +202,12 @@ func cmdCheck(args []string, stdout, stderr io.Writer) int {
 		fprintf(stderr, "--scope must be %q or %q\n", manifest.ScopeUser, manifest.ScopeMachine)
 		return 2
 	}
-	results := checks.Run(m, paths, checks.Options{Scope: *scope, Elevated: checks.Elevated(), RecordPath: *recordPath})
+	answers, err := parseAnswers(m, nil, optSets)
+	if err != nil {
+		fprintln(stderr, err)
+		return 2
+	}
+	results := checks.Run(m, paths, checks.Options{Scope: *scope, Elevated: checks.Elevated(), RecordPath: *recordPath, Answers: answers})
 	failed := 0
 	for _, r := range results {
 		if !r.Passed() {
