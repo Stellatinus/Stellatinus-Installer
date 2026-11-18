@@ -226,3 +226,31 @@ func TestOwnerAndRemove(t *testing.T) {
 		t.Fatalf("entries left: %v", r.Entries)
 	}
 }
+
+func TestDefaultPath(t *testing.T) {
+	cfg := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", cfg)
+	t.Setenv("AppData", cfg)
+	t.Setenv("HOME", cfg)
+	got, err := DefaultPath("haedus", "user")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if filepath.Base(got) != "record.json" || filepath.Base(filepath.Dir(got)) != "haedus" || !strings.HasPrefix(got, filepath.Dir(filepath.Dir(filepath.Dir(got)))) {
+		t.Fatalf("unexpected path %q", got)
+	}
+	if same, _ := DefaultPath("haedus", ""); same != got {
+		t.Fatalf("an empty scope means user: %q vs %q", same, got)
+	}
+	for _, id := range []string{"", "../x", "a/b", "CON"} {
+		if _, err := DefaultPath(id, "user"); err == nil {
+			t.Errorf("DefaultPath(%q) accepted a bad app id", id)
+		}
+	}
+	if _, err := DefaultPath("haedus", "everyone"); err == nil {
+		t.Error("an unknown scope was accepted")
+	}
+	if p, err := DefaultPath("haedus", "machine"); err == nil && !filepath.IsAbs(p) {
+		t.Errorf("machine path %q is not absolute", p)
+	}
+}
