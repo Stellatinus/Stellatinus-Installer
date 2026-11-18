@@ -110,6 +110,30 @@ func (r *Record) Add(e Entry) error {
 	return nil
 }
 
+// Owner returns who owns the entry recorded for path, if there is one.
+func (r *Record) Owner(path string) (Owner, bool) {
+	path = filepath.Clean(path)
+	for _, e := range r.Entries {
+		if e.Path == path {
+			return e.Owner, true
+		}
+	}
+	return "", false
+}
+
+// Remove drops the entry recorded for path and reports whether there was one.
+// It does not touch the disk.
+func (r *Record) Remove(path string) bool {
+	path = filepath.Clean(path)
+	for i, e := range r.Entries {
+		if e.Path == path {
+			r.Entries = append(r.Entries[:i], r.Entries[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
 // Save writes the record atomically: a temporary file in the same folder is
 // written and flushed, then renamed over the old one, so a crash leaves either
 // the old record or the new one.

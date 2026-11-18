@@ -11,10 +11,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
+	"path"
 	"regexp"
 	"strings"
 
+	"github.com/Stellatinus/Stellatinus-Installer/internal/safepath"
 	"github.com/Stellatinus/Stellatinus-Installer/internal/theme"
 )
 
@@ -42,6 +45,12 @@ const (
 	KindModels  = "models"
 	KindOutput  = "output"
 	KindData    = "data"
+)
+
+// Component kinds: a single file, or a zip archive that is unpacked.
+const (
+	ComponentFile = "file"
+	ComponentZip  = "zip"
 )
 
 // What to do with a location when the app is removed.
@@ -93,12 +102,21 @@ type Location struct {
 
 // Component is something to download during installation.
 type Component struct {
-	ID       string `json:"id"`
-	Label    string `json:"label"`
-	URL      string `json:"url"`
+	ID    string `json:"id"`
+	Label string `json:"label"`
+	URL   string `json:"url"`
+	// SHA256 and Size describe the downloaded file. Size must be right: it caps
+	// the download and is used for the free-space check.
 	SHA256   string `json:"sha256"`
 	Size     int64  `json:"size"`
 	Location string `json:"location"`
+	// Kind is "file" (default: stored as one file) or "zip" (unpacked).
+	Kind string `json:"kind,omitempty"`
+	// Name is the file name for kind "file"; by default the last part of the URL.
+	Name string `json:"name,omitempty"`
+	// Dest is a sub-folder of the location, written with "/"; empty means the
+	// location itself.
+	Dest string `json:"dest,omitempty"`
 }
 
 // Shortcut is one place a shortcut can be offered.
@@ -174,6 +192,17 @@ func (m *Manifest) applyDefaults() {
 	for i := range m.Locations {
 		if m.Locations[i].OnUninstall == "" {
 			m.Locations[i].OnUninstall = OnUninstallAsk
+		}
+	}
+	for i := range m.Components {
+		c := &m.Components[i]
+		if c.Kind == "" {
+			c.Kind = ComponentFile
+		}
+		if c.Kind == ComponentFile && c.Name == "" {
+			if u, err := url.Parse(c.URL); err == nil {
+				c.Name = path.Base(u.Path)
+			}
 		}
 	}
 }
@@ -278,8 +307,25 @@ func (m *Manifest) Validate() error {
 		if !shaRe.MatchString(c.SHA256) {
 			add("%s.sha256 must be 64 lower-case hexadecimal digits", p)
 		}
-		if c.Size < 0 {
-			add("%s.size must not be negative", p)
+		if c.Size <= 0 {
+			add("%s.size must be the size of the download in bytes, more than zero", p)
+		}
+		switch c.Kind {
+		case ComponentFile:
+			if err := safepath.ValidName(c.Name); err != nil {
+				add("%s.name: %v", p, err)
+			}
+		case ComponentZip:
+			if c.Name != "" {
+				add("%s.name is only for kind %q", p, ComponentFile)
+			}
+		default:
+			add("%s.kind %q must be %q or %q", p, c.Kind, ComponentFile, ComponentZip)
+		}
+		if c.Dest != "" {
+			if _, err := safepath.CleanRel(c.Dest); err != nil {
+				add("%s.dest: %v", p, err)
+			}
 		}
 		if !ids[c.Location] {
 			add("%s.location %q is not one of the locations", p, c.Location)

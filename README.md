@@ -36,7 +36,7 @@ flowchart LR
 | Installation record, removal plan and a safe `Apply` | Implemented, unit tested; the command line only **shows** a plan, it does not remove |
 | Command line (`validate`, `accent`, `check`, `plan`) | Implemented |
 | Setup window | Not started ([#5](https://github.com/Stellatinus/Stellatinus-Installer/issues/5), [#3](https://github.com/Stellatinus/Stellatinus-Installer/issues/3)) |
-| Downloading and installing components | Not started |
+| Downloading and installing components (`internal/install`) | Implemented as a library and tested against a local HTTPS server (resume, wrong hash, stalls, hostile zips, rollback); **not yet reachable from the command line** ([#17](https://github.com/Stellatinus/Stellatinus-Installer/issues/17)); nothing verified on a real machine |
 | Updater with verification and rollback | Design ([#7](https://github.com/Stellatinus/Stellatinus-Installer/issues/7)) |
 | Signing and release trust | Design ([#9](https://github.com/Stellatinus/Stellatinus-Installer/issues/9)) |
 | Microsoft Store builds | Postponed ([#8](https://github.com/Stellatinus/Stellatinus-Installer/issues/8)) |
@@ -44,7 +44,7 @@ flowchart LR
 
 ## Try it
 
-Requires Go 1.26 or newer (the same as Regulus). Use Go 1.26.1 or later: Go 1.26.0 has a standard-library vulnerability, GO-2026-4602.
+Requires Go 1.26 or newer (the same as Regulus). Use the newest patch release: `govulncheck` finds known standard-library vulnerabilities in older ones, and the installer uses `net/http`, `crypto/tls` and `archive/zip` (Go 1.26.11 or later was clean when this was written).
 
 ```sh
 git clone https://github.com/Stellatinus/Stellatinus-Installer.git
@@ -66,6 +66,8 @@ bin/stellatinus-installer check --set install=/tmp/demo examples/minimal.json
 | `internal/manifest` | reading and validating a manifest |
 | `internal/theme` | accent colour to readable palettes |
 | `internal/checks` | the checks before installing |
+| `internal/safepath` | safe names and paths from manifests and archives |
+| `internal/install` | downloading, checking, writing and rolling back an installation |
 | `internal/record` | the installation record and safe removal |
 | `schema/` | the manifest's JSON Schema |
 | `examples/` | example manifests (the URLs and hashes are fake) |

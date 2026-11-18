@@ -57,8 +57,15 @@ What to download while installing. The window shows `label` above the progress b
 | `id`, `label` | |
 | `url` | must start with `https://` |
 | `sha256` | 64 lower-case hexadecimal digits; the download is checked against it |
-| `size` | bytes, used for the free-space check |
+| `size` | bytes of the download, more than zero. It **caps the download** (a server that sends more is cut off) and feeds the free-space check |
 | `location` | the id of the location it is stored in |
+| `kind` | `file` (default: stored as one file) or `zip` (unpacked) |
+| `name` | the file name for kind `file`; by default the last part of the URL (a query string is ignored). Not allowed for `zip` |
+| `dest` | a sub-folder of the location, written with `/`; empty means the location itself |
+
+Names and paths must be valid on every system, so a package built on one installs the same on another: no `..`, no absolute path, no `\`, no `:`, no trailing dot or space, no Windows device name such as `CON` or `NUL`.
+
+How a component is installed ([`internal/install`](../internal/install/install.go)): it is downloaded to a `.stellatinus-<id>.part` file next to its destination and checked against `sha256`; only then is it renamed into place (kind `file`) or unpacked (kind `zip`). A file that is already there with the right hash is **not downloaded again** and is recorded as adopted; a different file with the same name is **never overwritten**. A zip entry is never allowed to overwrite an existing file either, and the archive is refused before a single file is written if an entry escapes the folder, is a symbolic link or special file, differs from another only in case, or if the archive is too large, has too many entries or is compressed suspiciously well.
 
 ## `shortcuts`
 

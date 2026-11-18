@@ -58,8 +58,11 @@
         "label": { "type": "string", "minLength": 1, "description": "Shown above the progress bar, for example 'the core'." },
         "url": { "type": "string", "pattern": "^https://" },
         "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
-        "size": { "type": "integer", "minimum": 0 },
-        "location": { "type": "string", "description": "The id of the location this component is stored in." }
+        "size": { "type": "integer", "minimum": 1, "description": "Bytes of the download; it caps the download and feeds the free-space check." },
+        "location": { "type": "string", "description": "The id of the location this component is stored in." },
+        "kind": { "enum": ["file", "zip"], "default": "file", "description": "A single file, or a zip archive that is unpacked." },
+        "name": { "type": "string", "description": "File name for kind file; by default the last part of the URL." },
+        "dest": { "type": "string", "description": "A sub-folder of the location, written with '/'." }
       }
     },
     "shortcut": {
