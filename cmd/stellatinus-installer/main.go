@@ -2,8 +2,10 @@
 // engine. It validates a manifest, derives and checks an accent palette, runs
 // the checks that come before an installation, installs an app from its
 // manifest (downloading, checking and recording what it writes, and rolling
-// back on failure), and removes an installation by its record, only on
-// request. It has no window; that part is tracked in the issues.
+// back on failure), removes an installation by its record, only on
+// request, packs a manifest into a single-file installer and lets an app
+// register files it made later. It has no window; that part is tracked in the
+// issues.
 package main
 
 import (
@@ -35,10 +37,16 @@ Usage:
   stellatinus-installer version
   stellatinus-installer validate <manifest.json>
   stellatinus-installer accent <#rrggbb>
-  stellatinus-installer check [--scope user|machine] [--set location=path]... [--option id=number]... [--record file] [--json] <manifest.json>
+  stellatinus-installer check [--scope user|machine] [--set location=path]... [--option id=number]... [--record file] [--json] [<manifest.json>]
   stellatinus-installer plan [--keep-location id]... [--keep-path path]... [--json] <record.json>
-  stellatinus-installer install [--scope user|machine] [--set location=path]... [--option id=number]... [--response file] [--silent] [--json] [--dry-run] <manifest.json>
+  stellatinus-installer install [--scope user|machine] [--set location=path]... [--option id=number]... [--response file] [--silent] [--json] [--dry-run] [<manifest.json>]
   stellatinus-installer uninstall [--scope user|machine] [--keep-location id]... [--keep-path path]... [--yes] [--silent] [--json] <record.json | app-id>
+  stellatinus-installer pack [--engine file] --manifest <manifest.json> --out <file>
+  stellatinus-installer register [--scope user|machine] [--location id] [--origin text] [--recursive] <record.json | app-id> <path>...
+  stellatinus-installer unregister [--scope user|machine] <record.json | app-id> <path>...
+
+A packed installer (an engine with a manifest appended) needs no manifest file, and run
+with no arguments it asks, then installs what it carries.
 
 Options go before the file name. "uninstall" only shows the plan unless --yes is given.
 
@@ -67,8 +75,18 @@ func run(args []string, stdout, stderr io.Writer) int {
 
 func runWith(ctx context.Context, d deps, args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
-		fprint(stderr, usage)
-		return 2
+		// A packed installer that is started with nothing else asks, and
+		// installs what it carries; the plain engine shows its usage.
+		data, err := embeddedManifest(d)
+		if err != nil {
+			fprintln(stderr, err)
+			return 1
+		}
+		if data == nil {
+			fprint(stderr, usage)
+			return 2
+		}
+		return cmdInstallEmbedded(ctx, d, stdout, stderr)
 	}
 	switch args[0] {
 	case "version", "--version":
@@ -82,7 +100,13 @@ func runWith(ctx context.Context, d deps, args []string, stdout, stderr io.Write
 	case "accent":
 		return cmdAccent(args[1:], stdout, stderr)
 	case "check":
-		return cmdCheck(args[1:], stdout, stderr)
+		return cmdCheck(d, args[1:], stdout, stderr)
+	case "pack":
+		return cmdPack(d, args[1:], stdout, stderr)
+	case "register":
+		return cmdRegister(args[1:], stdout, stderr, true)
+	case "unregister":
+		return cmdRegister(args[1:], stdout, stderr, false)
 	case "plan":
 		return cmdPlan(args[1:], stdout, stderr)
 	case "install":
@@ -155,7 +179,7 @@ func env(name string) string {
 	return ""
 }
 
-func cmdCheck(args []string, stdout, stderr io.Writer) int {
+func cmdCheck(d deps, args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("check", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	scope := fs.String("scope", "", "user or machine (default: the manifest's)")
@@ -167,11 +191,11 @@ func cmdCheck(args []string, stdout, stderr io.Writer) int {
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}
-	if fs.NArg() != 1 {
+	m, err := manifestArg(d, fs.Args())
+	if errors.Is(err, errUsage) {
 		fprint(stderr, usage)
 		return 2
 	}
-	m, err := manifest.Load(fs.Arg(0))
 	if err != nil {
 		fprintln(stderr, err)
 		return 1

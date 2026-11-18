@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func write(t *testing.T, path, content string) {
@@ -252,5 +253,140 @@ func TestDefaultPath(t *testing.T) {
 	}
 	if p, err := DefaultPath("haedus", "machine"); err == nil && !filepath.IsAbs(p) {
 		t.Errorf("machine path %q is not absolute", p)
+	}
+}
+
+func registerRig(t *testing.T) (*Record, string) {
+	t.Helper()
+	root := t.TempDir()
+	r := New("x", "1.0.0", "user", map[string]string{"models": root})
+	_ = r.Add(Entry{Path: root, Kind: KindDir, Owner: OwnerAdopted, Location: "models"})
+	r.InstalledAt = time.Now().Add(-time.Hour)
+	return r, root
+}
+
+func TestRegisterClaimsWhatTheAppMadeAfterTheInstallation(t *testing.T) {
+	r, root := registerRig(t)
+	f := filepath.Join(root, "later.bin")
+	write(t, f, "new")
+	n, err := r.Register("models", "catalog", false, f)
+	if err != nil || n != 1 {
+		t.Fatalf("Register = %d, %v", n, err)
+	}
+	if o, ok := r.Owner(f); !ok || o != OwnerInstaller {
+		t.Fatalf("owner %v %v", o, ok)
+	}
+	// It is removed with the rest.
+	if rep := r.Apply(r.Plan(Choices{})); len(rep.Failed) != 0 || exists(f) {
+		t.Fatalf("not removed: %+v", rep)
+	}
+	// Registering again is harmless.
+	write(t, f, "new")
+	if _, err := r.Register("models", "catalog", false, f); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Register("models", "catalog", false, f); err != nil {
+		t.Fatalf("a second registration must be idempotent: %v", err)
+	}
+	count := 0
+	for _, e := range r.Entries {
+		if e.Path == f {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Fatalf("%d entries for the same path", count)
+	}
+}
+
+func TestRegisterRefusesWhatIsNotTheApps(t *testing.T) {
+	r, root := registerRig(t)
+	other := t.TempDir()
+	outside := filepath.Join(other, "outside.bin")
+	write(t, outside, "x")
+
+	old := filepath.Join(root, "old.bin")
+	write(t, old, "existed before")
+	if err := os.Chtimes(old, time.Now().Add(-48*time.Hour), time.Now().Add(-48*time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	adopted := filepath.Join(root, "adopted.bin")
+	write(t, adopted, "x")
+	_ = r.Add(Entry{Path: adopted, Kind: KindFile, Owner: OwnerAdopted, Location: "models"})
+
+	link := filepath.Join(root, "link")
+	linkOK := os.Symlink(outside, link) == nil
+
+	for name, p := range map[string]string{
+		"outside the location":                    outside,
+		"the location itself":                     root,
+		"a relative path":                         "later.bin",
+		"a file modified before the installation": old,
+		"something recorded as the user's":        adopted,
+		"a file that does not exist":              filepath.Join(root, "missing.bin"),
+		"a path with .. in it":                    filepath.Join(root, "..", filepath.Base(other), "outside.bin"),
+	} {
+		if _, err := r.Register("models", "x", false, p); err == nil {
+			t.Errorf("%s: accepted", name)
+		}
+	}
+	if linkOK {
+		if _, err := r.Register("models", "x", false, link); err == nil {
+			t.Error("a symbolic link was accepted")
+		}
+		if _, err := r.Register("models", "x", false, filepath.Join(link, "outside.bin")); err == nil {
+			t.Error("a path through a symbolic link was accepted")
+		}
+	}
+	if _, err := r.Register("nowhere", "x", false, filepath.Join(root, "a")); err == nil {
+		t.Error("an unknown location was accepted")
+	}
+	if o, _ := r.Owner(adopted); o != OwnerAdopted {
+		t.Fatal("the user's file changed owner")
+	}
+}
+
+func TestRegisterIsAllOrNothingAndCanBeRecursive(t *testing.T) {
+	r, root := registerRig(t)
+	good := filepath.Join(root, "good.bin")
+	write(t, good, "g")
+	before := len(r.Entries)
+	if _, err := r.Register("models", "x", false, good, filepath.Join(root, "missing")); err == nil {
+		t.Fatal("a bad path among good ones was accepted")
+	}
+	if len(r.Entries) != before {
+		t.Fatal("a failed registration added some of the paths")
+	}
+
+	dir := filepath.Join(root, "model-pack")
+	write(t, filepath.Join(dir, "a.bin"), "a")
+	write(t, filepath.Join(dir, "sub", "b.bin"), "b")
+	n, err := r.Register("models", "pack", true, dir)
+	if err != nil || n != 4 { // the folder, a.bin, sub, sub/b.bin
+		t.Fatalf("recursive Register = %d, %v", n, err)
+	}
+	if rep := r.Apply(r.Plan(Choices{})); len(rep.Failed) != 0 || exists(dir) {
+		t.Fatalf("the folder was not removed: %+v", rep)
+	}
+	// Without recursive only the folder itself is claimed.
+	write(t, filepath.Join(dir, "a.bin"), "a")
+	n, err = r.Register("models", "pack", false, dir)
+	if err != nil || n != 1 {
+		t.Fatalf("non-recursive = %d, %v", n, err)
+	}
+}
+
+func TestUnregisterForgetsWithoutTouchingTheDisk(t *testing.T) {
+	r, root := registerRig(t)
+	f := filepath.Join(root, "x.bin")
+	write(t, f, "x")
+	if _, err := r.Register("models", "x", false, f); err != nil {
+		t.Fatal(err)
+	}
+	if !r.Remove(f) {
+		t.Fatal("Remove should forget the entry")
+	}
+	if !exists(f) {
+		t.Fatal("forgetting an entry deleted the file")
 	}
 }

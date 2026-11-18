@@ -26,6 +26,8 @@ What each term means today. Add new terms here.
 | **Platforms** | the systems a component is for; the installer downloads only the ones for the system it runs on |
 | **Texts** | the translations of the manifest's texts; English is the base |
 | **Rollback** | what the installer does when an installation fails: it removes everything that run created (from the record) and leaves what was there before |
+| **Packed installer** | the engine with an app's manifest appended: one file to download, signed as a whole ([embedding.md](embedding.md)) |
+| **Register** | telling the installer a file the app made after the installation, so uninstall removes it (it refuses anything unsafe) |
 | **Channel** | `direct` (downloaded from the app's own site) or `store` (Microsoft Store, postponed) |
 | **Wizard** | the setup window with its steps; planned |
 | **Adopter** | an app that uses the installer (Haedus, Mira, Regulus Desktop, Polaris) |

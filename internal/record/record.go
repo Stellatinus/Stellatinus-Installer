@@ -172,6 +172,94 @@ func (r *Record) Remove(path string) bool {
 	return false
 }
 
+// Contained checks that path lies inside the folder chosen for a location and
+// that no folder on the way is a symbolic link. The location folder itself is
+// not accepted.
+func (r *Record) Contained(locID, path string) error {
+	root, ok := r.Locations[locID]
+	if !ok {
+		return fmt.Errorf("unknown location %q", locID)
+	}
+	if !filepath.IsAbs(path) {
+		return fmt.Errorf("%q is not an absolute path", path)
+	}
+	return checkInside(root, filepath.Clean(path), false)
+}
+
+// registerSlack allows for file systems that keep modification times with a
+// coarse resolution (FAT keeps two seconds).
+const registerSlack = 3 * time.Second
+
+// Register records files an app made after the installation (a model it
+// downloaded later, say) as the installer's, so uninstall removes them with the
+// rest. The caller is the app, which says what it made; the installer still
+// refuses anything unsafe: the path must be inside the location's folder, not
+// reached through a symbolic link, must exist and be a regular file or a
+// folder, must not have been modified before the installation (a file that was
+// already there is not the app's to claim), and must not be recorded as someone
+// else's. With recursive, a folder's content is registered too. Either every
+// path is registered or none is. It returns how many entries were added or
+// updated.
+func (r *Record) Register(locID, origin string, recursive bool, paths ...string) (int, error) {
+	var add []Entry
+	seen := map[string]bool{}
+	var visit func(p string) error
+	visit = func(p string) error {
+		p = filepath.Clean(p)
+		if seen[p] {
+			return nil
+		}
+		seen[p] = true
+		if err := r.Contained(locID, p); err != nil {
+			return err
+		}
+		info, err := os.Lstat(p)
+		if err != nil {
+			return err
+		}
+		if info.Mode()&fs.ModeSymlink != 0 {
+			return fmt.Errorf("%s is a symbolic link; refusing to register it", p)
+		}
+		if !info.IsDir() && !info.Mode().IsRegular() {
+			return fmt.Errorf("%s is not a regular file or a folder; refusing to register it", p)
+		}
+		if info.ModTime().Before(r.InstalledAt.Add(-registerSlack)) {
+			return fmt.Errorf("%s was last modified before the installation, so it was not made by the app; not registering it", p)
+		}
+		if owner, ok := r.Owner(p); ok && owner != OwnerInstaller {
+			return fmt.Errorf("%s is recorded as %s; not taking it over", p, owner)
+		}
+		kind, size := KindFile, info.Size()
+		if info.IsDir() {
+			kind, size = KindDir, 0
+		}
+		add = append(add, Entry{Path: p, Kind: kind, Owner: OwnerInstaller, Size: size, Location: locID, Origin: origin})
+		if info.IsDir() && recursive {
+			entries, err := os.ReadDir(p)
+			if err != nil {
+				return err
+			}
+			for _, e := range entries {
+				if err := visit(filepath.Join(p, e.Name())); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+	for _, p := range paths {
+		if err := visit(p); err != nil {
+			return 0, err
+		}
+	}
+	for _, e := range add {
+		if err := r.Add(e); err != nil {
+			return 0, err
+		}
+	}
+	return len(add), nil
+}
+
 // Save writes the record atomically: a temporary file in the same folder is
 // written and flushed, then renamed over the old one, so a crash leaves either
 // the old record or the new one.

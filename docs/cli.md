@@ -59,6 +59,10 @@ Files and shortcuts go first, then folders from the deepest up. A folder that st
 
 `plan` is `uninstall` without `--yes`, for a record path.
 
+## `pack`, `register`, `unregister`
+
+`pack` makes the single-file installer; `register` and `unregister` keep the record true for files an app makes later. Both are explained in [embedding.md](embedding.md). `install` and `check` take no manifest file when run from a packed installer.
+
 ## Exit status
 
 | Code | Meaning | Commands |

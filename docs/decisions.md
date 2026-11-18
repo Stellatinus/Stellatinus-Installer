@@ -8,6 +8,8 @@ Status: **decided** (by the maintainers), **proposed** (my first choice, applied
 
 | Decision | Why |
 |---|---|
+| Single-file installer: the manifest is appended to the engine with a length, sha256 and magic trailer; a damaged one is refused | One file to download, no mismatched engine and manifest, and the engine bytes stay intact so a signature covers it ([embedding.md](embedding.md)) |
+| Apps register files they make later; the installer checks every path (inside the location, no symlink, exists, not older than the installation, not someone else's) and registers all or nothing | The removal rule is a safety rule: a caller cannot make the installer own what it does not |
 | One shared engine embedded in each app, driven by a manifest; **not a suite installer** | Stellatinus tools are standalone and do not need each other; a suite installer only makes sense when products must work together |
 | Two faces: a command line and a setup window | the command line serves silent installs, scripts and Regulus; the window serves people |
 | **Go** | one small static binary per system, no runtime to install first, one CI cross-compiles for every system, and Regulus already has verification and swap code in Go |
@@ -66,7 +68,7 @@ Work is grouped in milestones, in this order. An epic ([#14](https://github.com/
 | Milestone | What it holds | Issues |
 |---|---|---|
 | **M1 Foundations** | repository, manifest format, accent colours, pre-install checks, installation record, first command line, locations design | #1, #12, #15 (done) |
-| **M2 Install and remove (command line, Windows first)** | download and install components, install and uninstall from the command line with a silent mode, the embedding contract, the rest of the manifest, repair, and the real-machine checks of permissions on Windows | #4, #6, #10, #18, #26, #27, #32 (#2, #16, #17, #19 done) |
+| **M2 Install and remove (command line, Windows first)** | download and install components, install and uninstall from the command line with a silent mode, the embedding contract, the rest of the manifest, repair, and the real-machine checks of permissions on Windows | #6, #10, #18, #26, #27, #32 (#2, #4, #16, #17, #19 done) |
 | **M3 Setup window** | the window technology (after a spike), the wizard, accessibility, themes, English and Italian | #3, #5, #29 |
 | **M4 Updates and signing** | the updater, and the signing and trust model | #7, #9 |
 | **M5 Adopters, Linux and macOS** | Regulus Desktop, Haedus, Mira and Polaris adopt the installer; other systems; the real-machine plan across systems | #11, #13, #33, #35 |
