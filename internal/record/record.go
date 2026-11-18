@@ -14,9 +14,12 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/Stellatinus/Stellatinus-Installer/internal/safepath"
 )
 
 // Version is the record format this code reads and writes.
@@ -108,6 +111,41 @@ func (r *Record) Add(e Entry) error {
 	}
 	r.Entries = append(r.Entries, e)
 	return nil
+}
+
+// DefaultPath is where the record of an installation lives, so install and
+// uninstall find it from the app id and the scope alone. It is outside every
+// folder the user chooses, so removing an installation never removes its own
+// record first. For a user it is under the user's configuration folder; for
+// everybody under the machine-wide data folder.
+func DefaultPath(appID, scope string) (string, error) {
+	if err := safepath.ValidName(appID); err != nil {
+		return "", fmt.Errorf("record: the app id: %w", err)
+	}
+	var base string
+	switch scope {
+	case "machine":
+		switch runtime.GOOS {
+		case "windows":
+			base = os.Getenv("ProgramData")
+		case "darwin":
+			base = "/Library/Application Support"
+		default:
+			base = "/var/lib"
+		}
+		if base == "" {
+			return "", errors.New("record: the machine-wide data folder is not known on this system")
+		}
+	case "user", "":
+		dir, err := os.UserConfigDir()
+		if err != nil {
+			return "", fmt.Errorf("record: the user's configuration folder: %w", err)
+		}
+		base = dir
+	default:
+		return "", fmt.Errorf("record: unknown scope %q", scope)
+	}
+	return filepath.Join(base, "Stellatinus", appID, "record.json"), nil
 }
 
 // Owner returns who owns the entry recorded for path, if there is one.

@@ -1,20 +1,24 @@
 // Command stellatinus-installer is the command line face of the installer
 // engine. It validates a manifest, derives and checks an accent palette, runs
-// the checks that come before an installation, and shows what a removal would
-// do. It does not install or remove anything yet and has no window; those
-// parts are tracked in the issues.
+// the checks that come before an installation, installs an app from its
+// manifest (downloading, checking and recording what it writes, and rolling
+// back on failure), and removes an installation by its record, only on
+// request. It has no window; that part is tracked in the issues.
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 
 	"github.com/Stellatinus/Stellatinus-Installer/internal/checks"
 	"github.com/Stellatinus/Stellatinus-Installer/internal/manifest"
@@ -33,11 +37,24 @@ Usage:
   stellatinus-installer accent <#rrggbb>
   stellatinus-installer check [--scope user|machine] [--set location=path]... [--record file] [--json] <manifest.json>
   stellatinus-installer plan [--keep-location id]... [--keep-path path]... [--json] <record.json>
+  stellatinus-installer install [--scope user|machine] [--set location=path]... [--response file] [--silent] [--json] [--dry-run] <manifest.json>
+  stellatinus-installer uninstall [--scope user|machine] [--keep-location id]... [--keep-path path]... [--yes] [--silent] [--json] <record.json | app-id>
 
-Exit status: 0 success, 1 a problem was found, 2 wrong usage.
+Options go before the file name. "uninstall" only shows the plan unless --yes is given.
+
+Exit status: 0 success, 1 a problem was found and nothing was changed, 2 wrong usage,
+3 an installation failed and was rolled back, 4 it failed and something could not be
+rolled back, 5 a removal left items it could not remove. See docs/cli.md.
 `
 
-func main() { os.Exit(run(os.Args[1:], os.Stdout, os.Stderr)) }
+func main() {
+	// Ctrl+C or a termination request cancels a running installation, which
+	// then rolls back what it created.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	code := runWith(ctx, deps{}, os.Args[1:], os.Stdout, os.Stderr)
+	stop()
+	os.Exit(code)
+}
 
 type listFlag []string
 
@@ -45,6 +62,10 @@ func (l *listFlag) String() string     { return strings.Join(*l, ",") }
 func (l *listFlag) Set(v string) error { *l = append(*l, v); return nil }
 
 func run(args []string, stdout, stderr io.Writer) int {
+	return runWith(context.Background(), deps{}, args, stdout, stderr)
+}
+
+func runWith(ctx context.Context, d deps, args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
 		fprint(stderr, usage)
 		return 2
@@ -64,6 +85,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return cmdCheck(args[1:], stdout, stderr)
 	case "plan":
 		return cmdPlan(args[1:], stdout, stderr)
+	case "install":
+		return cmdInstall(ctx, d, args[1:], stdout, stderr)
+	case "uninstall":
+		return cmdUninstall(args[1:], stdout, stderr)
 	}
 	fprintf(stderr, "unknown command %q\n\n%s", args[0], usage)
 	return 2

@@ -34,9 +34,9 @@ flowchart LR
 | Accent colour derivation with a contrast guarantee (WCAG AA) | Implemented, unit tested |
 | Pre-install checks (privileges, write permission, space, overlap, existing install) | Implemented, unit tested; Windows behaviour (ACLs, UAC, controlled folder access) **not verified on a real machine** |
 | Installation record, removal plan and a safe `Apply` | Implemented, unit tested; the command line only **shows** a plan, it does not remove |
-| Command line (`validate`, `accent`, `check`, `plan`) | Implemented |
+| Command line (`validate`, `accent`, `check`, `install`, `uninstall`, `plan`) | Implemented: installs from a manifest with checks first, rolls back on failure or Ctrl+C, a silent mode, a response file and JSON events; `uninstall` only shows the plan unless `--yes` ([docs/cli.md](docs/cli.md)). Tested against a local HTTPS server; **not verified on a real machine** |
 | Setup window | Not started ([#5](https://github.com/Stellatinus/Stellatinus-Installer/issues/5), [#3](https://github.com/Stellatinus/Stellatinus-Installer/issues/3)) |
-| Downloading and installing components (`internal/install`) | Implemented as a library and tested against a local HTTPS server (resume, wrong hash, stalls, hostile zips, rollback); **not yet reachable from the command line** ([#17](https://github.com/Stellatinus/Stellatinus-Installer/issues/17)); nothing verified on a real machine |
+| Downloading and installing components (`internal/install`) | Implemented as a library and tested against a local HTTPS server (resume, wrong hash, stalls, hostile zips, rollback); reachable from the command line; nothing verified on a real machine |
 | Updater with verification and rollback | Design ([#7](https://github.com/Stellatinus/Stellatinus-Installer/issues/7)) |
 | Signing and release trust | Design ([#9](https://github.com/Stellatinus/Stellatinus-Installer/issues/9)) |
 | Microsoft Store builds | Postponed ([#8](https://github.com/Stellatinus/Stellatinus-Installer/issues/8)) |
@@ -54,6 +54,7 @@ make build                                   # builds bin/stellatinus-installer
 bin/stellatinus-installer validate examples/haedus.json
 bin/stellatinus-installer accent '#f2c200'   # the palette derived from one colour
 bin/stellatinus-installer check --set install=/tmp/demo examples/minimal.json
+bin/stellatinus-installer install --dry-run --set install=/tmp/demo --set models=/tmp/demo-models examples/haedus.json
 ```
 
 `check` really creates and removes a test file in the chosen folder but never creates the folder itself.

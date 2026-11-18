@@ -36,7 +36,7 @@ sequenceDiagram
     W->>U: finish, "Open"
 ```
 
-The engine part, "download components" down to the record, exists as `internal/install` and is tested against a local HTTPS server; it is not yet reachable from the command line ([#17](https://github.com/Stellatinus/Stellatinus-Installer/issues/17)), and the window and shortcuts do not exist yet.
+The engine part, "download components" down to the record, exists as `internal/install` and is tested against a local HTTPS server; it is reachable from the command line (`install`, `uninstall`; see [cli.md](cli.md)). The window and shortcuts do not exist yet.
 
 ## Removal
 
