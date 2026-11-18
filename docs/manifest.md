@@ -109,4 +109,4 @@ The update source and trust anchor ([#7](https://github.com/Stellatinus/Stellati
 
 ## Anything an app adds later
 
-If an app downloads files into a location after the installation (for example a model from inside Haedus), it must add them to the installation record as `installer`-owned, or removal will treat them as the user's and keep them. The contract for adopters is in [#4](https://github.com/Stellatinus/Stellatinus-Installer/issues/4).
+If an app downloads files into a location after the installation (for example a model from inside Haedus), it must add them to the installation record as `installer`-owned, or removal will treat them as the user's and keep them. The contract for adopters, with `register`, is in [embedding.md](embedding.md).

@@ -18,6 +18,7 @@ import (
 	"github.com/Stellatinus/Stellatinus-Installer/internal/checks"
 	"github.com/Stellatinus/Stellatinus-Installer/internal/install"
 	"github.com/Stellatinus/Stellatinus-Installer/internal/manifest"
+	"github.com/Stellatinus/Stellatinus-Installer/internal/pack"
 	"github.com/Stellatinus/Stellatinus-Installer/internal/record"
 )
 
@@ -34,6 +35,50 @@ const (
 // deps are the things a test replaces.
 type deps struct {
 	client *http.Client // nil: the installer's default client
+	exe    string       // the installer's own file, to look for an appended manifest; empty: os.Executable
+	stdin  io.Reader    // nil: os.Stdin
+}
+
+var errUsage = errors.New("usage")
+
+// embeddedManifest returns the manifest appended to the installer's own file,
+// or nil if it is the plain engine.
+func embeddedManifest(d deps) ([]byte, error) {
+	exe := d.exe
+	if exe == "" {
+		var err error
+		if exe, err = os.Executable(); err != nil {
+			return nil, nil // cannot tell: behave as the plain engine
+		}
+	}
+	data, err := pack.Read(exe)
+	if errors.Is(err, pack.ErrNotPacked) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("this installer: %w", err)
+	}
+	return data, nil
+}
+
+// manifestArg returns the manifest named on the command line, or the one
+// appended to the installer when none is named. More than one name, or none
+// from a plain engine, is a usage error.
+func manifestArg(d deps, args []string) (*manifest.Manifest, error) {
+	switch len(args) {
+	case 1:
+		return manifest.Load(args[0])
+	case 0:
+		data, err := embeddedManifest(d)
+		if err != nil {
+			return nil, err
+		}
+		if data == nil {
+			return nil, errUsage
+		}
+		return manifest.Parse(bytes.NewReader(data))
+	}
+	return nil, errUsage
 }
 
 // response is a file that answers the questions the window would ask, so an
@@ -193,13 +238,13 @@ func cmdInstall(ctx context.Context, d deps, args []string, stdout, stderr io.Wr
 	if err := fs.Parse(args); err != nil {
 		return exitUsage
 	}
-	if fs.NArg() != 1 {
+	pr := newPrinter(stdout, stderr, *asJSON, *silent)
+
+	m, err := manifestArg(d, fs.Args())
+	if errors.Is(err, errUsage) {
 		fprint(stderr, usage)
 		return exitUsage
 	}
-	pr := newPrinter(stdout, stderr, *asJSON, *silent)
-
-	m, err := manifest.Load(fs.Arg(0))
 	if err != nil {
 		return pr.fail(exitProblem, nil, err.Error())
 	}
