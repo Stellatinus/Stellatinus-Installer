@@ -35,7 +35,7 @@ flowchart LR
 | Pre-install checks (privileges, write permission, space, overlap, existing install) | Implemented, unit tested; Windows behaviour (ACLs, UAC, controlled folder access) **not verified on a real machine** |
 | Installation record, removal plan and a safe `Apply` | Implemented, unit tested; the command line only **shows** a plan, it does not remove |
 | Command line (`validate`, `accent`, `check`, `install`, `uninstall`, `plan`) | Implemented: installs from a manifest with checks first, rolls back on failure or Ctrl+C, a silent mode, a response file and JSON events; `uninstall` only shows the plan unless `--yes` ([docs/cli.md](docs/cli.md)). Tested against a local HTTPS server; **not verified on a real machine** |
-| Setup window | Not started ([#5](https://github.com/Stellatinus/Stellatinus-Installer/issues/5), [#3](https://github.com/Stellatinus/Stellatinus-Installer/issues/3)) |
+| Setup window | A **spike and a proposal** ([docs/window.md](docs/window.md)): the local interface server and the choice of browser window are built and tested; the wizard itself is not started ([#5](https://github.com/Stellatinus/Stellatinus-Installer/issues/5)); the choice of technology stays open until real-machine results ([#3](https://github.com/Stellatinus/Stellatinus-Installer/issues/3)) |
 | Downloading and installing components (`internal/install`) | Implemented as a library and tested against a local HTTPS server (resume, wrong hash, stalls, hostile zips, rollback); reachable from the command line; nothing verified on a real machine |
 | Updater with verification and rollback | Design ([#7](https://github.com/Stellatinus/Stellatinus-Installer/issues/7)) |
 | Signing and release trust | Design ([#9](https://github.com/Stellatinus/Stellatinus-Installer/issues/9)) |
@@ -69,6 +69,9 @@ bin/stellatinus-installer install --dry-run --set install=/tmp/demo --set models
 | `internal/checks` | the checks before installing |
 | `internal/safepath` | safe names and paths from manifests and archives |
 | `internal/install` | downloading, checking, writing and rolling back an installation |
+| `internal/localui` | the local interface server for the setup window |
+| `internal/opener` | choosing and starting the window or browser |
+| `spikes/window` | the window spike (not the product) |
 | `internal/record` | the installation record and safe removal |
 | `schema/` | the manifest's JSON Schema |
 | `examples/` | example manifests (the URLs and hashes are fake) |

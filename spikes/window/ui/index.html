@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Setup spike</title>
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<aside>
+  <h1 id="app">…</h1>
+  <p>Window spike</p>
+  <ol><li>Welcome</li><li class="cur">Checks</li><li>Install</li></ol>
+</aside>
+<main>
+  <h2>Checking that everything is in order</h2>
+  <p class="lead">These are the engine's real checks, run on this machine, for the folders the manifest proposes. Nothing is created or installed.</p>
+  <div class="row"><button id="run" class="primary">Run the checks</button><button id="quit">Close</button></div>
+  <ul class="res" id="res" aria-live="polite"></ul>
+  <p class="note">Try selecting this text: it should not select. The path below can be selected.</p>
+  <p class="note sel" id="paths"></p>
+</main>
+<script src="/app.js"></script>
+</body>
+</html>
