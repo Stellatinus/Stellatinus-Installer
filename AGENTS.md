@@ -30,4 +30,4 @@ At the end of a piece of work, report:
 
 1. a **completeness score from 0 to 100** for the area you worked on, with the list of what is missing to reach 100;
 2. an **issue for each gap** you found (in English, with a "Done when" line), unless one already exists;
-3. the **milestone** you chose for each new issue and why (there are none yet; say so).
+3. the **milestone** you chose for each new issue and why (the milestones and what each holds are in the table at the end of [docs/decisions.md](docs/decisions.md)).

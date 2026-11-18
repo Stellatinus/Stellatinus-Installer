@@ -32,7 +32,7 @@ Status: **decided** (by the maintainers), **proposed** (my first choice, applied
 | Delivery order: install, uninstall and command line on Windows; then the updater; then Linux and macOS | the first adopter is Haedus on Windows | |
 | **Apache-2.0** | the same as Regulus and Haedus | to be confirmed by the maintainer |
 | CI produces **build artifacts only**, no releases and no packages | nothing consumes them yet; releases come with signing ([#9](https://github.com/Stellatinus/Stellatinus-Installer/issues/9)) when the first adopter must download the engine | |
-| **CI and builds use Go 1.25** while `go.mod` keeps a minimum of Go 1.24 | `govulncheck` found a standard-library vulnerability in Go 1.24.7 (GO-2026-4602, `os`), fixed only in Go 1.25.8; the built command line should not carry it | raise the minimum in `go.mod`, which would force every contributor to upgrade |
+| **Go 1.26 or newer** (minimum in `go.mod`, and what CI uses) | the same as Regulus. `govulncheck` found a standard-library vulnerability (GO-2026-4602, `os`) fixed in Go 1.25.8 and 1.26.1, so builds must use a patched toolchain; the `golang.org/x/sys` update that Dependabot proposed also raised the minimum to 1.26 and `golangci-lint` before v2.15 cannot read a 1.26 module | keep a lower minimum such as 1.24, which would force a patched toolchain in CI anyway and block the dependency updates |
 | GitHub Actions are referenced by major version, not by commit | the commit hashes could not be looked up from where this was written; Dependabot keeps them current | pin by hash (Regulus#206 does) |
 
 ## Open
@@ -51,4 +51,15 @@ The write check's "permission denied" case was exercised on Linux as an unprivil
 
 ## Milestones
 
-There are none yet. When the first adopter starts, they follow the delivery order above.
+Work is grouped in milestones, in this order. An epic ([#14](https://github.com/Stellatinus/Stellatinus-Installer/issues/14)) spans them and has none.
+
+| Milestone | What it holds | Issues |
+|---|---|---|
+| **M1 Foundations** | repository, manifest format, accent colours, pre-install checks, installation record, first command line, locations design | #1, #12, #15 (done) |
+| **M2 Install and remove (command line, Windows first)** | download and install components, install and uninstall from the command line with a silent mode, the embedding contract, the rest of the manifest, repair, and the real-machine checks of permissions on Windows | #2, #4, #6, #10, #16, #17, #18, #19 |
+| **M3 Setup window** | the window technology (after a spike), the wizard, accessibility, themes, English and Italian | #3, #5 |
+| **M4 Updates and signing** | the updater, and the signing and trust model | #7, #9 |
+| **M5 Adopters, Linux and macOS** | Regulus Desktop, Haedus, Mira and Polaris adopt the installer; other systems; the real-machine plan across systems | #11, #13 |
+| **Later: Microsoft Store** | Store builds | #8 |
+
+New issues pick the milestone whose work they belong to; if none fits, say so in the issue instead of stretching one.

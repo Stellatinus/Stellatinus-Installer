@@ -44,7 +44,7 @@ flowchart LR
 
 ## Try it
 
-Requires Go 1.24 or newer (CI and the build artifacts use Go 1.25, which has a patched standard library).
+Requires Go 1.26 or newer (the same as Regulus). Use Go 1.26.1 or later: Go 1.26.0 has a standard-library vulnerability, GO-2026-4602.
 
 ```sh
 git clone https://github.com/Stellatinus/Stellatinus-Installer.git
