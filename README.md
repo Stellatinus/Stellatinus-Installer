@@ -2,7 +2,7 @@
 
 A small, shared installer, uninstaller and updater that Stellatinus apps embed in their own download. Each app brings a **manifest** (its name, folders, downloads, shortcuts and one accent colour); the installer gives it a polished setup window, safe checks before anything is written, an uninstaller that only removes what the installer created, and (later) an updater with verification and rollback.
 
-> **Status: early.** The engine can install an app from a manifest and remove it again from the **command line** (checks first, downloads checked against their hash, everything recorded, rollback on failure, and removal only when asked), and a spike shows the setup window's interface. Shortcuts (Start menu and desktop) are made on request. There is **no setup window and no updater yet**, and nothing has been verified on a real Windows, macOS or Linux machine. Follow the work in the [epic](https://github.com/Stellatinus/Stellatinus-Installer/issues/14) and read [docs/decisions.md](docs/decisions.md) for what is decided and what is open.
+> **Status: early.** The engine can install an app from a manifest and remove it again from the **command line** (checks first, downloads checked against their hash, everything recorded, rollback on failure, and removal only when asked), and a spike shows the setup window's interface. Shortcuts (Start menu and desktop) are made on request and an installation can be repaired. There is **no setup window and no updater yet**, and nothing has been verified on a real Windows, macOS or Linux machine. Follow the work in the [epic](https://github.com/Stellatinus/Stellatinus-Installer/issues/14) and read [docs/decisions.md](docs/decisions.md) for what is decided and what is open.
 
 ## What it is, and what it is not
 

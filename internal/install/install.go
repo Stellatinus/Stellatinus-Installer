@@ -123,7 +123,7 @@ func (e *Error) Error() string {
 func (e *Error) Unwrap() error { return e.Err }
 
 // ErrAlreadyInstalled is returned when a record already exists at RecordPath.
-var ErrAlreadyInstalled = errors.New("an installation is already recorded here; remove it first (repair and update are not built yet)")
+var ErrAlreadyInstalled = errors.New("an installation is already recorded here; remove it first, or run repair to restore it (updating to another version is not built yet)")
 
 func (o *Options) defaults() {
 	if o.IdleTimeout <= 0 {
@@ -160,6 +160,7 @@ type runner struct {
 	created []record.Entry    // what this run created, in order
 	skipped []string
 
+	count     int      // components shown in the progress; 0 means all of comps
 	shortcuts []string // created
 	notes     []string // requested and not created, with the reason
 }
@@ -202,6 +203,11 @@ func Run(ctx context.Context, m *manifest.Manifest, opt Options) (*Result, error
 	// The record's location roots are filled in as folders are made, because a
 	// root is the highest folder this run created (or the folder that existed).
 	r.rec = record.New(m.App.ID, m.App.Version, scope, nil)
+	r.rec.Paths = map[string]string{}
+	for id, p := range r.paths {
+		r.rec.Paths[id] = p
+	}
+	r.rec.Answers = answers
 
 	if err := r.prepare(); err != nil {
 		return nil, r.fail(err)
@@ -407,7 +413,11 @@ func (r *runner) component(ctx context.Context, idx int, c manifest.Component) e
 }
 
 func (r *runner) event(idx int, c manifest.Component, phase Phase, file string, done, total int64) {
-	r.emit(Event{Phase: phase, Component: c.ID, Label: c.Label, File: file, Done: done, Total: total, Index: idx + 1, Count: len(r.comps)})
+	count := len(r.comps)
+	if r.count > 0 {
+		count = r.count
+	}
+	r.emit(Event{Phase: phase, Component: c.ID, Label: c.Label, File: file, Done: done, Total: total, Index: idx + 1, Count: count})
 }
 
 func (r *runner) installFile(ctx context.Context, idx int, c manifest.Component, base string) error {
@@ -425,7 +435,7 @@ func (r *runner) installFile(ctx context.Context, idx int, c manifest.Component,
 		}
 		r.logf("%s is already in place with the right sha256; not downloading it", dest)
 		r.skipped = append(r.skipped, c.ID)
-		return r.rec.Add(record.Entry{Path: dest, Kind: record.KindFile, Owner: record.OwnerAdopted, Size: info.Size(), Location: c.Location, Origin: c.ID})
+		return r.rec.Add(record.Entry{Path: dest, Kind: record.KindFile, Owner: record.OwnerAdopted, Size: info.Size(), SHA256: sum, Location: c.Location, Origin: c.ID})
 	} else if !errors.Is(err, fs.ErrNotExist) {
 		return err
 	}
@@ -445,7 +455,7 @@ func (r *runner) installFile(ctx context.Context, idx int, c manifest.Component,
 	}
 	r.untrack(part)
 	r.logf("wrote %s", dest)
-	return r.track(record.Entry{Path: dest, Kind: record.KindFile, Owner: record.OwnerInstaller, Size: c.Size, Location: c.Location, Origin: c.ID})
+	return r.track(record.Entry{Path: dest, Kind: record.KindFile, Owner: record.OwnerInstaller, Size: c.Size, SHA256: c.SHA256, Location: c.Location, Origin: c.ID})
 }
 
 // fail removes what this run created and returns the error to report.
@@ -513,37 +523,46 @@ func resolveAnswers(m *manifest.Manifest, given map[string]int) (map[string]int,
 // A file that already exists is never overwritten.
 func (r *runner) writeConfig() error {
 	for _, cf := range r.m.Config {
-		root := r.paths[cf.Location]
-		dest := filepath.Join(root, cf.Name)
-		r.emit(Event{Phase: PhaseConfig, File: dest})
-		if _, err := os.Lstat(dest); err == nil {
-			return fmt.Errorf("%s already exists; not overwriting it", dest)
-		} else if !errors.Is(err, fs.ErrNotExist) {
+		if err := r.writeConfigFile(cf); err != nil {
 			return err
 		}
-		obj := map[string]any{}
-		for key, opt := range cf.Values {
-			obj[key] = r.answers[opt]
-		}
-		data, err := json.MarshalIndent(obj, "", "  ")
-		if err != nil {
-			return err
-		}
-		tmp := dest + ".stellatinus-tmp"
-		if err := r.track(record.Entry{Path: tmp, Kind: record.KindFile, Owner: record.OwnerInstaller, Location: cf.Location, Origin: "config"}); err != nil {
-			return err
-		}
-		if err := os.WriteFile(tmp, append(data, '\n'), 0o644); err != nil {
-			return err
-		}
-		if err := os.Rename(tmp, dest); err != nil {
-			return err
-		}
-		r.untrack(tmp)
-		if err := r.track(record.Entry{Path: dest, Kind: record.KindFile, Owner: record.OwnerInstaller, Size: int64(len(data) + 1), Location: cf.Location, Origin: "config"}); err != nil {
-			return err
-		}
-		r.logf("wrote %s", dest)
 	}
+	return nil
+}
+
+func (r *runner) writeConfigFile(cf manifest.ConfigFile) error {
+	root := r.paths[cf.Location]
+	dest := filepath.Join(root, cf.Name)
+	r.emit(Event{Phase: PhaseConfig, File: dest})
+	if _, err := os.Lstat(dest); err == nil {
+		return fmt.Errorf("%s already exists; not overwriting it", dest)
+	} else if !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	obj := map[string]any{}
+	for key, opt := range cf.Values {
+		obj[key] = r.answers[opt]
+	}
+	data, err := json.MarshalIndent(obj, "", "  ")
+	if err != nil {
+		return err
+	}
+	data = append(data, '\n')
+	tmp := dest + ".stellatinus-tmp"
+	if err := r.track(record.Entry{Path: tmp, Kind: record.KindFile, Owner: record.OwnerInstaller, Location: cf.Location, Origin: "config"}); err != nil {
+		return err
+	}
+	if err := os.WriteFile(tmp, data, 0o644); err != nil {
+		return err
+	}
+	if err := os.Rename(tmp, dest); err != nil {
+		return err
+	}
+	r.untrack(tmp)
+	h := sha256.Sum256(data)
+	if err := r.track(record.Entry{Path: dest, Kind: record.KindFile, Owner: record.OwnerInstaller, Size: int64(len(data)), SHA256: hex.EncodeToString(h[:]), Location: cf.Location, Origin: "config"}); err != nil {
+		return err
+	}
+	r.logf("wrote %s", dest)
 	return nil
 }

@@ -49,10 +49,14 @@ const (
 
 // Entry is one thing the installer knows about.
 type Entry struct {
-	Path     string `json:"path"`
-	Kind     Kind   `json:"kind"`
-	Owner    Owner  `json:"owner"`
-	Size     int64  `json:"size,omitempty"`
+	Path  string `json:"path"`
+	Kind  Kind   `json:"kind"`
+	Owner Owner  `json:"owner"`
+	Size  int64  `json:"size,omitempty"`
+	// SHA256 is the hash of a file the installer wrote, so repair can tell a
+	// file that was changed from one that is intact. Empty for an entry that
+	// was not hashed (a folder, a shortcut, a file an app registered).
+	SHA256   string `json:"sha256,omitempty"`
 	Location string `json:"location"`         // the manifest location it belongs to
 	Origin   string `json:"origin,omitempty"` // the component that produced it
 }
@@ -64,8 +68,13 @@ type Record struct {
 	AppVersion  string            `json:"app_version"`
 	Scope       string            `json:"scope"`
 	InstalledAt time.Time         `json:"installed_at"`
-	Locations   map[string]string `json:"locations"` // location id to the folder the user chose
-	Entries     []Entry           `json:"entries"`
+	Locations   map[string]string `json:"locations"` // location id to the highest folder the installation made, or the folder that already existed
+	// Paths is the folder the user chose for each location, and Answers the
+	// answer to each option. Repair needs both: Locations may be a parent of
+	// the chosen folder. Absent in a record made before repair existed.
+	Paths   map[string]string `json:"paths,omitempty"`
+	Answers map[string]int    `json:"answers,omitempty"`
+	Entries []Entry           `json:"entries"`
 }
 
 // New starts an empty record.

@@ -41,6 +41,7 @@ Usage:
   stellatinus-installer plan [--keep-location id]... [--keep-path path]... [--json] <record.json>
   stellatinus-installer install [--scope user|machine] [--set location=path]... [--option id=number]... [--shortcut place]... [--response file] [--silent] [--json] [--dry-run] [<manifest.json>]
   stellatinus-installer uninstall [--scope user|machine] [--keep-location id]... [--keep-path path]... [--yes] [--silent] [--json] <record.json | app-id>
+  stellatinus-installer repair [--scope user|machine] [--yes] [--silent] [--json] [<manifest.json>]
   stellatinus-installer pack [--engine file] --manifest <manifest.json> --out <file>
   stellatinus-installer register [--scope user|machine] [--location id] [--origin text] [--recursive] <record.json | app-id> <path>...
   stellatinus-installer unregister [--scope user|machine] <record.json | app-id> <path>...
@@ -48,11 +49,13 @@ Usage:
 A packed installer (an engine with a manifest appended) needs no manifest file, and run
 with no arguments it asks, then installs what it carries.
 
-Options go before the file name. "uninstall" only shows the plan unless --yes is given.
+Options go before the file name. "uninstall" and "repair" only show what they would do
+unless --yes is given.
 
 Exit status: 0 success, 1 a problem was found and nothing was changed, 2 wrong usage,
 3 an installation failed and was rolled back, 4 it failed and something could not be
-rolled back, 5 a removal left items it could not remove. See docs/cli.md.
+rolled back, 5 a removal left items it could not remove, 6 a repair could not put
+everything back. See docs/cli.md.
 `
 
 func main() {
@@ -113,6 +116,8 @@ func runWith(ctx context.Context, d deps, args []string, stdout, stderr io.Write
 		return cmdInstall(ctx, d, args[1:], stdout, stderr)
 	case "uninstall":
 		return cmdUninstall(args[1:], stdout, stderr)
+	case "repair":
+		return cmdRepair(ctx, d, args[1:], stdout, stderr)
 	}
 	fprintf(stderr, "unknown command %q\n\n%s", args[0], usage)
 	return 2
