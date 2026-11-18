@@ -33,7 +33,7 @@ Status: **decided** (by the maintainers), **proposed** (my first choice, applied
 | **Apache-2.0** | the same as Regulus and Haedus | to be confirmed by the maintainer |
 | CI produces **build artifacts only**, no releases and no packages | nothing consumes them yet; releases come with signing ([#9](https://github.com/Stellatinus/Stellatinus-Installer/issues/9)) when the first adopter must download the engine | |
 | **Go 1.26 or newer** (minimum in `go.mod`, and what CI uses) | the same as Regulus. `govulncheck` found a standard-library vulnerability (GO-2026-4602, `os`) fixed in Go 1.25.8 and 1.26.1, so builds must use a patched toolchain; the `golang.org/x/sys` update that Dependabot proposed also raised the minimum to 1.26 and `golangci-lint` before v2.15 cannot read a 1.26 module | keep a lower minimum such as 1.24, which would force a patched toolchain in CI anyway and block the dependency updates |
-| GitHub Actions are referenced by major version, not by commit | the commit hashes could not be looked up from where this was written; Dependabot keeps them current | pin by hash (Regulus#206 does) |
+| **GitHub Actions are pinned by commit hash**, with the release in a comment (`uses: actions/checkout@<40 hex> # v7.0.1`); a CI job fails on any action that is not | a tag can be moved by whoever owns the action; Dependabot's `github-actions` updates keep hash and comment current (the same as Regulus#206) | the major-version tags the first workflows used |
 
 ## Open
 
