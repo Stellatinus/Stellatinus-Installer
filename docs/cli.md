@@ -6,8 +6,8 @@
 stellatinus-installer version
 stellatinus-installer validate examples/haedus.json
 stellatinus-installer accent '#f2c200'
-stellatinus-installer check   [--scope user|machine] [--set location=path]... [--record file] [--json] <manifest.json>
-stellatinus-installer install [--scope user|machine] [--set location=path]... [--response file] [--silent] [--json] [--dry-run] <manifest.json>
+stellatinus-installer check   [--scope user|machine] [--set location=path]... [--option id=number]... [--record file] [--json] <manifest.json>
+stellatinus-installer install [--scope user|machine] [--set location=path]... [--option id=number]... [--response file] [--silent] [--json] [--dry-run] <manifest.json>
 stellatinus-installer uninstall [--scope user|machine] [--keep-location id]... [--keep-path path]... [--yes] [--silent] [--json] <record.json | app-id>
 stellatinus-installer plan    [--keep-location id]... [--keep-path path]... [--json] <record.json>
 ```
@@ -34,9 +34,12 @@ A JSON file that answers what the window would ask, so no one has to be there. U
     "install": "D:\\Apps\\Haedus",
     "models": "D:\\Models",
     "output": "D:\\Transcriptions"
-  }
+  },
+  "options": { "port": 5081 }
 }
 ```
+
+`--option id=number` answers an option (a port) and wins over the response file; an answer for an option the manifest does not have is a usage error, and a port that is not from 1024 to 65535, or is busy, is refused before anything is downloaded. Only the components for this system (`platforms`) are installed.
 
 Shortcuts are not part of it yet: they are not created by the engine ([#26](https://github.com/Stellatinus/Stellatinus-Installer/issues/26)).
 

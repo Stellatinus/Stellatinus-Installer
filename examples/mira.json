@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "app": {
+    "id": "mira",
+    "name": "Mira",
+    "version": "0.6.0",
+    "publisher": "Stellatinus",
+    "description": "Your GitHub notifications, issues and pull requests in one place.",
+    "accent": "#2f6df6"
+  },
+  "locations": [
+    {
+      "id": "install",
+      "label": "Program",
+      "kind": "install",
+      "required": true,
+      "default": {
+        "windows": "${LOCALAPPDATA}\\Mira",
+        "linux": "${HOME}/.local/share/mira",
+        "darwin": "${HOME}/Applications/Mira"
+      }
+    },
+    {
+      "id": "data",
+      "label": "Settings and encrypted tokens",
+      "kind": "data",
+      "on_uninstall": "keep",
+      "default": {
+        "windows": "${APPDATA}\\Mira",
+        "linux": "${HOME}/.config/Mira",
+        "darwin": "${HOME}/.config/Mira"
+      }
+    }
+  ],
+  "options": [
+    {
+      "id": "port",
+      "label": "Port",
+      "kind": "port",
+      "default": 5080
+    }
+  ],
+  "config": [
+    {
+      "location": "data",
+      "name": "config.json",
+      "format": "json",
+      "values": {
+        "port": "port"
+      }
+    }
+  ],
+  "components": [
+    {
+      "id": "desktop",
+      "label": "Mira",
+      "kind": "zip",
+      "platforms": [
+        "windows/amd64"
+      ],
+      "url": "https://example.invalid/Mira-Desktop-0.6.0-win-x64.zip",
+      "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "size": 96468992,
+      "location": "install"
+    }
+  ],
+  "shortcuts": {
+    "start_menu": {
+      "offer": true,
+      "default": true
+    },
+    "taskbar": {
+      "offer": true,
+      "default": false
+    },
+    "desktop": {
+      "offer": true,
+      "default": false
+    }
+  },
+  "texts": {
+    "it": {
+      "app.name": "Mira",
+      "app.description": "Le tue notifiche, issue e pull request di GitHub in un posto solo.",
+      "location.install.label": "Programma",
+      "location.data.label": "Impostazioni e token cifrati",
+      "option.port.label": "Porta",
+      "component.desktop.label": "Mira"
+    }
+  }
+}

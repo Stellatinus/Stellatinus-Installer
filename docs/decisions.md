@@ -37,6 +37,9 @@ Status: **decided** (by the maintainers), **proposed** (my first choice, applied
 | **`uninstall` only shows the plan unless `--yes` is given**, and a plan always lists what is protected | a command that deletes should not do it by accident; `plan` stays for a record path | ask a question (a prompt would break silent mode) |
 | **Exit codes** 0 ok, 1 a problem with nothing changed, 2 usage, 3 failed and rolled back, 4 failed and not fully rolled back, 5 removal left items ([cli.md](cli.md)) | a script must tell "nothing happened" from "undo it" from "finish removing" | one non-zero code for every failure |
 | **The record lives outside the chosen folders** (`<config>/Stellatinus/<app id>/record.json`, machine-wide for all users) and is kept when a removal leaves items | removing an installation must never remove its own record first, and an install or removal that stops half way can be finished | store it in the install folder |
+| **Options and config files:** a port is a manifest option that is checked by really listening, and a small JSON file is written for the app from the answers, never over an existing file | Mira needs its port in `config.json` before it starts, and "a free port" must be true, not just plausible | each app writes its own config after install; check only that the number is in range |
+| **Components have `platforms`**; only those for the running system are downloaded and counted | an app ships a `.zip` for Windows and a `.tar.gz` for Linux; one manifest must serve all of them | one manifest per system |
+| **Translations are in the manifest** (`texts`), English is the base, and the project's own examples must be fully Italian (a test) | the window is bilingual; the manifest is where an app's own words live | a separate translation file per app |
 | **Apache-2.0** | the same as Regulus and Haedus | to be confirmed by the maintainer |
 | CI produces **build artifacts only**, no releases and no packages | nothing consumes them yet; releases come with signing ([#9](https://github.com/Stellatinus/Stellatinus-Installer/issues/9)) when the first adopter must download the engine | |
 | **Go 1.26 or newer** (minimum in `go.mod`, and what CI uses) | the same as Regulus. `govulncheck` found a standard-library vulnerability (GO-2026-4602, `os`) fixed in Go 1.25.8 and 1.26.1, so builds must use a patched toolchain (the installer now uses `net/http`, `crypto/tls` and `archive/zip`, and Go 1.26.11 or later was needed to be clean; CI takes the newest 1.26 patch); the `golang.org/x/sys` update that Dependabot proposed also raised the minimum to 1.26 and `golangci-lint` before v2.15 cannot read a 1.26 module | keep a lower minimum such as 1.24, which would force a patched toolchain in CI anyway and block the dependency updates |
@@ -63,10 +66,10 @@ Work is grouped in milestones, in this order. An epic ([#14](https://github.com/
 | Milestone | What it holds | Issues |
 |---|---|---|
 | **M1 Foundations** | repository, manifest format, accent colours, pre-install checks, installation record, first command line, locations design | #1, #12, #15 (done) |
-| **M2 Install and remove (command line, Windows first)** | download and install components, install and uninstall from the command line with a silent mode, the embedding contract, the rest of the manifest, repair, and the real-machine checks of permissions on Windows | #2, #4, #6, #10, #16, #17, #18, #26, #27 (#19 done) |
+| **M2 Install and remove (command line, Windows first)** | download and install components, install and uninstall from the command line with a silent mode, the embedding contract, the rest of the manifest, repair, and the real-machine checks of permissions on Windows | #4, #6, #10, #18, #26, #27, #32 (#2, #16, #17, #19 done) |
 | **M3 Setup window** | the window technology (after a spike), the wizard, accessibility, themes, English and Italian | #3, #5, #29 |
 | **M4 Updates and signing** | the updater, and the signing and trust model | #7, #9 |
-| **M5 Adopters, Linux and macOS** | Regulus Desktop, Haedus, Mira and Polaris adopt the installer; other systems; the real-machine plan across systems | #11, #13 |
+| **M5 Adopters, Linux and macOS** | Regulus Desktop, Haedus, Mira and Polaris adopt the installer; other systems; the real-machine plan across systems | #11, #13, #33, #35 |
 | **Later: Microsoft Store** | Store builds | #8 |
 
 New issues pick the milestone whose work they belong to; if none fits, say so in the issue instead of stretching one.

@@ -5,7 +5,8 @@
     "name": "Haedus",
     "version": "1.4.0",
     "publisher": "Stellatinus",
-    "accent": "#f2c200"
+    "accent": "#f2c200",
+    "description": "Turns speech and recordings into text on your own computer."
   },
   "scope": "user",
   "allow_machine": true,
@@ -53,7 +54,10 @@
       "url": "https://example.invalid/haedus-core.zip",
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
       "size": 222298112,
-      "location": "install"
+      "location": "install",
+      "platforms": [
+        "windows/amd64"
+      ]
     },
     {
       "id": "engine",
@@ -63,7 +67,10 @@
       "url": "https://example.invalid/whisper-engine.zip",
       "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
       "size": 100663296,
-      "location": "install"
+      "location": "install",
+      "platforms": [
+        "windows/amd64"
+      ]
     },
     {
       "id": "voice_model",
@@ -75,8 +82,29 @@
     }
   ],
   "shortcuts": {
-    "start_menu": { "offer": true, "default": true },
-    "taskbar": { "offer": true, "default": false },
-    "desktop": { "offer": true, "default": true }
+    "start_menu": {
+      "offer": true,
+      "default": true
+    },
+    "taskbar": {
+      "offer": true,
+      "default": false
+    },
+    "desktop": {
+      "offer": true,
+      "default": true
+    }
+  },
+  "texts": {
+    "it": {
+      "app.name": "Haedus",
+      "app.description": "Trasforma la voce e le registrazioni in testo, sul tuo computer.",
+      "location.install.label": "Programma",
+      "location.models.label": "Modelli di intelligenza artificiale",
+      "location.output.label": "Trascrizioni",
+      "component.core.label": "il core",
+      "component.engine.label": "il motore di trascrizione",
+      "component.voice_model.label": "il modello vocale"
+    }
   }
 }

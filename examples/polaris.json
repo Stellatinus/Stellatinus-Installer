@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "app": {
+    "id": "polaris",
+    "name": "Polaris",
+    "version": "0.1.0",
+    "publisher": "Stellatinus",
+    "description": "A small companion that shows what your coding agent is doing.",
+    "accent": "#7c5cff"
+  },
+  "locations": [
+    {
+      "id": "install",
+      "label": "Program",
+      "kind": "install",
+      "required": true,
+      "default": {
+        "windows": "${LOCALAPPDATA}\\Polaris",
+        "linux": "${HOME}/.local/share/polaris",
+        "darwin": "${HOME}/Applications/Polaris"
+      }
+    },
+    {
+      "id": "data",
+      "label": "Settings",
+      "kind": "data",
+      "on_uninstall": "ask",
+      "default": {
+        "windows": "${APPDATA}\\Polaris",
+        "linux": "${HOME}/.config/polaris",
+        "darwin": "${HOME}/Library/Application Support/Polaris"
+      }
+    }
+  ],
+  "components": [
+    {
+      "id": "app",
+      "label": "Polaris",
+      "kind": "zip",
+      "platforms": [
+        "windows/amd64"
+      ],
+      "url": "https://example.invalid/Polaris-0.1.0-win-x64.zip",
+      "sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "size": 31457280,
+      "location": "install"
+    },
+    {
+      "id": "app_mac",
+      "label": "Polaris",
+      "kind": "zip",
+      "platforms": [
+        "darwin/arm64"
+      ],
+      "url": "https://example.invalid/Polaris-0.1.0-osx-arm64.zip",
+      "sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "size": 33554432,
+      "location": "install"
+    }
+  ],
+  "shortcuts": {
+    "start_menu": {
+      "offer": true,
+      "default": true
+    },
+    "desktop": {
+      "offer": true,
+      "default": false
+    }
+  },
+  "texts": {
+    "it": {
+      "app.name": "Polaris",
+      "app.description": "Un piccolo compagno che mostra cosa sta facendo il tuo agente di programmazione.",
+      "location.install.label": "Programma",
+      "location.data.label": "Impostazioni",
+      "component.app.label": "Polaris",
+      "component.app_mac.label": "Polaris"
+    }
+  }
+}

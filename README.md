@@ -30,7 +30,7 @@ flowchart LR
 
 | Part | State |
 |---|---|
-| Manifest format, validation, JSON Schema | Implemented, unit tested |
+| Manifest format (folders, components per system, options such as a port, config files, translations), validation, JSON Schema, examples for Haedus, Mira, Polaris and Regulus Desktop | Implemented, unit tested |
 | Accent colour derivation with a contrast guarantee (WCAG AA) | Implemented, unit tested |
 | Pre-install checks (privileges, write permission, space, overlap, existing install) | Implemented, unit tested; Windows behaviour (ACLs, UAC, controlled folder access) **not verified on a real machine** |
 | Installation record, removal plan and a safe `Apply` | Implemented, unit tested; `uninstall --yes` removes by it, `plan` and `uninstall` without `--yes` only **show** it |

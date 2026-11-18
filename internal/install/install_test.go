@@ -77,9 +77,13 @@ func makeZip(t *testing.T, entries ...zent) []byte {
 type comp struct {
 	id, kind, location, name, dest, url string
 	data                                []byte
+	platforms                           []string
 }
 
-func build(t *testing.T, comps ...comp) *manifest.Manifest {
+func build(t *testing.T, comps ...comp) *manifest.Manifest { return buildX(t, nil, comps...) }
+
+// buildX is build with a chance to change the manifest document first.
+func buildX(t *testing.T, mutate func(doc map[string]any), comps ...comp) *manifest.Manifest {
 	t.Helper()
 	var cs []map[string]any
 	for _, c := range comps {
@@ -96,6 +100,9 @@ func build(t *testing.T, comps ...comp) *manifest.Manifest {
 		if c.dest != "" {
 			m["dest"] = c.dest
 		}
+		if c.platforms != nil {
+			m["platforms"] = c.platforms
+		}
 		cs = append(cs, m)
 	}
 	doc := map[string]any{
@@ -106,6 +113,9 @@ func build(t *testing.T, comps ...comp) *manifest.Manifest {
 			map[string]any{"id": "models", "label": "Models", "kind": "models", "adopt": true, "default": map[string]any{"linux": "/y"}},
 		},
 		"components": cs,
+	}
+	if mutate != nil {
+		mutate(doc)
 	}
 	b, _ := json.Marshal(doc)
 	m, err := manifest.Parse(bytes.NewReader(b))

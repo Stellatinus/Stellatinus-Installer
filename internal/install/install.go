@@ -11,6 +11,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -18,6 +19,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -35,6 +37,7 @@ const (
 	PhaseDownload Phase = "download"
 	PhaseVerify   Phase = "verify"
 	PhaseUnpack   Phase = "unpack"
+	PhaseConfig   Phase = "config"
 	PhaseDone     Phase = "done"
 )
 
@@ -71,6 +74,12 @@ type Options struct {
 	Backoff     func(attempt int) time.Duration
 	MaxUnpacked int64 // most bytes a zip may unpack to (default 8 GiB)
 	MaxEntries  int   // most entries a zip may have (default 100000)
+
+	// GOOS and GOARCH choose which components are installed (default: this
+	// system). Answers holds the value of each option by id; a missing one uses
+	// the manifest's default.
+	GOOS, GOARCH string
+	Answers      map[string]int
 }
 
 // Result is what a successful run leaves behind.
@@ -119,11 +128,19 @@ func (o *Options) defaults() {
 	if o.MaxEntries <= 0 {
 		o.MaxEntries = 100000
 	}
+	if o.GOOS == "" {
+		o.GOOS = runtime.GOOS
+	}
+	if o.GOARCH == "" {
+		o.GOARCH = runtime.GOARCH
+	}
 	o.Client = httpsOnly(o.Client)
 }
 
 type runner struct {
 	m       *manifest.Manifest
+	comps   []manifest.Component // the components for this system
+	answers map[string]int
 	opt     Options
 	rec     *record.Record
 	paths   map[string]string // folder chosen for each location
@@ -151,11 +168,15 @@ func Run(ctx context.Context, m *manifest.Manifest, opt Options) (*Result, error
 			return nil, ErrAlreadyInstalled
 		}
 	}
+	answers, err := resolveAnswers(m, opt.Answers)
+	if err != nil {
+		return nil, err
+	}
 	scope := opt.Scope
 	if scope == "" {
 		scope = m.Scope
 	}
-	r := &runner{m: m, opt: opt, paths: map[string]string{}}
+	r := &runner{m: m, comps: m.ComponentsFor(opt.GOOS, opt.GOARCH), answers: answers, opt: opt, paths: map[string]string{}}
 	for id, p := range opt.Paths {
 		r.paths[id] = filepath.Clean(p)
 	}
@@ -169,7 +190,7 @@ func Run(ctx context.Context, m *manifest.Manifest, opt Options) (*Result, error
 	if err := r.save(); err != nil {
 		return nil, r.fail(err)
 	}
-	for i, c := range m.Components {
+	for i, c := range r.comps {
 		if err := ctx.Err(); err != nil {
 			return nil, r.fail(err)
 		}
@@ -180,7 +201,13 @@ func Run(ctx context.Context, m *manifest.Manifest, opt Options) (*Result, error
 			return nil, r.fail(err)
 		}
 	}
-	r.emit(Event{Phase: PhaseDone, Index: len(m.Components), Count: len(m.Components)})
+	if err := r.writeConfig(); err != nil {
+		return nil, r.fail(err)
+	}
+	if err := r.save(); err != nil {
+		return nil, r.fail(err)
+	}
+	r.emit(Event{Phase: PhaseDone, Index: len(r.comps), Count: len(r.comps)})
 	return &Result{Record: r.rec, Skipped: r.skipped}, nil
 }
 
@@ -355,7 +382,7 @@ func (r *runner) component(ctx context.Context, idx int, c manifest.Component) e
 }
 
 func (r *runner) event(idx int, c manifest.Component, phase Phase, file string, done, total int64) {
-	r.emit(Event{Phase: phase, Component: c.ID, Label: c.Label, File: file, Done: done, Total: total, Index: idx + 1, Count: len(r.m.Components)})
+	r.emit(Event{Phase: phase, Component: c.ID, Label: c.Label, File: file, Done: done, Total: total, Index: idx + 1, Count: len(r.comps)})
 }
 
 func (r *runner) installFile(ctx context.Context, idx int, c manifest.Component, base string) error {
@@ -431,4 +458,67 @@ func fileSHA256(path string) (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
+// resolveAnswers fills in defaults and refuses a value that is not valid for
+// its option, or an answer for an option the manifest does not have.
+func resolveAnswers(m *manifest.Manifest, given map[string]int) (map[string]int, error) {
+	out := map[string]int{}
+	known := map[string]bool{}
+	for _, o := range m.Options {
+		known[o.ID] = true
+		v, ok := given[o.ID]
+		if !ok {
+			v = o.Default
+		}
+		if o.Kind == manifest.OptionPort && (v < 1024 || v > 65535) {
+			return nil, fmt.Errorf("%s: %d is not a port from 1024 to 65535", o.Label, v)
+		}
+		out[o.ID] = v
+	}
+	for id := range given {
+		if !known[id] {
+			return nil, fmt.Errorf("there is no option %q", id)
+		}
+	}
+	return out, nil
+}
+
+// writeConfig writes the small files the manifest asks for from the answers.
+// A file that already exists is never overwritten.
+func (r *runner) writeConfig() error {
+	for _, cf := range r.m.Config {
+		root := r.paths[cf.Location]
+		dest := filepath.Join(root, cf.Name)
+		r.emit(Event{Phase: PhaseConfig, File: dest})
+		if _, err := os.Lstat(dest); err == nil {
+			return fmt.Errorf("%s already exists; not overwriting it", dest)
+		} else if !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+		obj := map[string]any{}
+		for key, opt := range cf.Values {
+			obj[key] = r.answers[opt]
+		}
+		data, err := json.MarshalIndent(obj, "", "  ")
+		if err != nil {
+			return err
+		}
+		tmp := dest + ".stellatinus-tmp"
+		if err := r.track(record.Entry{Path: tmp, Kind: record.KindFile, Owner: record.OwnerInstaller, Location: cf.Location, Origin: "config"}); err != nil {
+			return err
+		}
+		if err := os.WriteFile(tmp, append(data, '\n'), 0o644); err != nil {
+			return err
+		}
+		if err := os.Rename(tmp, dest); err != nil {
+			return err
+		}
+		r.untrack(tmp)
+		if err := r.track(record.Entry{Path: dest, Kind: record.KindFile, Owner: record.OwnerInstaller, Size: int64(len(data) + 1), Location: cf.Location, Origin: "config"}); err != nil {
+			return err
+		}
+		r.logf("wrote %s", dest)
+	}
+	return nil
 }

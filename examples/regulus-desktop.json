@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "app": {
+    "id": "regulus-desktop",
+    "name": "Regulus Desktop",
+    "version": "0.1.0",
+    "publisher": "Stellatinus",
+    "description": "A desktop controller with a direct connection to your Regulus hub.",
+    "accent": "#0f9d9a"
+  },
+  "locations": [
+    {
+      "id": "install",
+      "label": "Program",
+      "kind": "install",
+      "required": true,
+      "default": {
+        "windows": "${LOCALAPPDATA}\\Regulus Desktop",
+        "linux": "${HOME}/.local/share/regulus-desktop",
+        "darwin": "${HOME}/Applications/Regulus Desktop"
+      }
+    },
+    {
+      "id": "data",
+      "label": "Settings",
+      "kind": "data",
+      "on_uninstall": "ask",
+      "default": {
+        "windows": "${APPDATA}\\Regulus Desktop",
+        "linux": "${HOME}/.config/regulus-desktop",
+        "darwin": "${HOME}/Library/Application Support/Regulus Desktop"
+      }
+    }
+  ],
+  "components": [
+    {
+      "id": "app_win",
+      "label": "Regulus Desktop",
+      "kind": "zip",
+      "platforms": [
+        "windows/amd64"
+      ],
+      "url": "https://example.invalid/regulus-desktop-0.1.0-windows-amd64.zip",
+      "sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "size": 52428800,
+      "location": "install"
+    },
+    {
+      "id": "app_mac",
+      "label": "Regulus Desktop",
+      "kind": "zip",
+      "platforms": [
+        "darwin"
+      ],
+      "url": "https://example.invalid/regulus-desktop-0.1.0-darwin-arm64.zip",
+      "sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "size": 52428800,
+      "location": "install"
+    },
+    {
+      "id": "app_linux",
+      "label": "Regulus Desktop",
+      "kind": "zip",
+      "platforms": [
+        "linux"
+      ],
+      "url": "https://example.invalid/regulus-desktop-0.1.0-linux-amd64.zip",
+      "sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "size": 52428800,
+      "location": "install"
+    }
+  ],
+  "shortcuts": {
+    "start_menu": {
+      "offer": true,
+      "default": true
+    },
+    "taskbar": {
+      "offer": true,
+      "default": false
+    },
+    "desktop": {
+      "offer": true,
+      "default": false
+    }
+  },
+  "texts": {
+    "it": {
+      "app.name": "Regulus Desktop",
+      "app.description": "Un controller da scrivania con una connessione diretta al tuo hub Regulus.",
+      "location.install.label": "Programma",
+      "location.data.label": "Impostazioni",
+      "component.app_win.label": "Regulus Desktop",
+      "component.app_mac.label": "Regulus Desktop",
+      "component.app_linux.label": "Regulus Desktop"
+    }
+  }
+}

@@ -21,6 +21,10 @@ What each term means today. Add new terms here.
 | **Response file** | a JSON file with the answers the window would ask (scope and folders), for an installation nobody attends |
 | **Local interface** | the setup window's web interface served on `127.0.0.1` with a single-use address and a session cookie ([window.md](window.md)) |
 | **App window** | a browser window with no tabs or address bar (Edge, Chrome or Chromium `--app`), used to show the local interface |
+| **Option** | a question that is not a folder (a port), answered by the user and checked before installing |
+| **Config file** | a small file the installer writes for the app from the answers (for example `{"port": 5081}`), never over an existing file |
+| **Platforms** | the systems a component is for; the installer downloads only the ones for the system it runs on |
+| **Texts** | the translations of the manifest's texts; English is the base |
 | **Rollback** | what the installer does when an installation fails: it removes everything that run created (from the record) and leaves what was there before |
 | **Channel** | `direct` (downloaded from the app's own site) or `store` (Microsoft Store, postponed) |
 | **Wizard** | the setup window with its steps; planned |
