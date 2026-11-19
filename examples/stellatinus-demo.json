@@ -6,7 +6,7 @@
     "version": "0.1.0-test",
     "publisher": "Stellatinus",
     "accent": "#2f6df6",
-    "description": "A fake app to try the installer: nothing in it does anything. Install it, adopt a folder, remove it."
+    "description": "A small app to try the installer: it only prints a message. Install it, adopt a folder, remove it."
   },
   "scope": "user",
   "allow_machine": true,
@@ -48,10 +48,73 @@
   ],
   "components": [
     {
-      "id": "app",
+      "id": "app_windows_amd64",
       "label": "The demo program",
       "kind": "zip",
-      "url": "https://github.com/Stellatinus/Stellatinus-Installer/releases/download/test-builds/demo-app.zip",
+      "platforms": [
+        "windows/amd64"
+      ],
+      "url": "https://github.com/Stellatinus/Stellatinus-Installer/releases/download/test-builds/demo-app-windows-amd64.zip",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size": 1,
+      "location": "install"
+    },
+    {
+      "id": "app_windows_arm64",
+      "label": "The demo program",
+      "kind": "zip",
+      "platforms": [
+        "windows/arm64"
+      ],
+      "url": "https://github.com/Stellatinus/Stellatinus-Installer/releases/download/test-builds/demo-app-windows-arm64.zip",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size": 1,
+      "location": "install"
+    },
+    {
+      "id": "app_linux_amd64",
+      "label": "The demo program",
+      "kind": "zip",
+      "platforms": [
+        "linux/amd64"
+      ],
+      "url": "https://github.com/Stellatinus/Stellatinus-Installer/releases/download/test-builds/demo-app-linux-amd64.zip",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size": 1,
+      "location": "install"
+    },
+    {
+      "id": "app_linux_arm64",
+      "label": "The demo program",
+      "kind": "zip",
+      "platforms": [
+        "linux/arm64"
+      ],
+      "url": "https://github.com/Stellatinus/Stellatinus-Installer/releases/download/test-builds/demo-app-linux-arm64.zip",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size": 1,
+      "location": "install"
+    },
+    {
+      "id": "app_darwin_amd64",
+      "label": "The demo program",
+      "kind": "zip",
+      "platforms": [
+        "darwin/amd64"
+      ],
+      "url": "https://github.com/Stellatinus/Stellatinus-Installer/releases/download/test-builds/demo-app-darwin-amd64.zip",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size": 1,
+      "location": "install"
+    },
+    {
+      "id": "app_darwin_arm64",
+      "label": "The demo program",
+      "kind": "zip",
+      "platforms": [
+        "darwin/arm64"
+      ],
+      "url": "https://github.com/Stellatinus/Stellatinus-Installer/releases/download/test-builds/demo-app-darwin-arm64.zip",
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
       "size": 1,
       "location": "install"
@@ -108,12 +171,17 @@
   },
   "texts": {
     "it": {
+      "component.app_windows_amd64.label": "Il programma demo",
+      "component.app_windows_arm64.label": "Il programma demo",
+      "component.app_linux_amd64.label": "Il programma demo",
+      "component.app_linux_arm64.label": "Il programma demo",
+      "component.app_darwin_amd64.label": "Il programma demo",
+      "component.app_darwin_arm64.label": "Il programma demo",
       "app.name": "Stellatinus Demo",
-      "app.description": "Un'app finta per provare l'installer: non fa nulla. Installala, adotta una cartella, rimuovila.",
+      "app.description": "Una piccola app per provare l'installer: stampa solo un messaggio. Installala, adotta una cartella, rimuovila.",
       "location.install.label": "Programma",
       "location.models.label": "Modelli di esempio",
       "location.output.label": "Risultati",
-      "component.app.label": "Il programma demo",
       "component.sample_model.label": "Un modello di esempio (un file grande, per vedere la barra di avanzamento)",
       "option.port.label": "Porta su cui la demo ascolterebbe"
     }

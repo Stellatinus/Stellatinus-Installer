@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -24,7 +25,7 @@ const demoManifest = "../../examples/stellatinus-demo.json"
 
 func TestGeneratedManifestMatchesTheFiles(t *testing.T) {
 	out := t.TempDir()
-	if err := generate(demoManifest, out, 1<<20); err != nil {
+	if err := generate(demoManifest, out, "", 1<<20); err != nil {
 		t.Fatal(err)
 	}
 	m, err := manifest.Load(filepath.Join(out, "manifest.json"))
@@ -50,7 +51,7 @@ func TestGeneratedManifestMatchesTheFiles(t *testing.T) {
 func TestPayloadIsDeterministic(t *testing.T) {
 	a, b := t.TempDir(), t.TempDir()
 	for _, d := range []string{a, b} {
-		if err := generate(demoManifest, d, 1<<20); err != nil {
+		if err := generate(demoManifest, d, "", 1<<20); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -61,27 +62,59 @@ func TestPayloadIsDeterministic(t *testing.T) {
 	}
 }
 
-func TestTheZipHoldsTheProgramTheManifestLaunches(t *testing.T) {
+func TestEachZipHoldsTheProgramTheManifestLaunchesOnItsSystem(t *testing.T) {
 	m, err := manifest.Load(demoManifest)
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, err := demoZip()
-	if err != nil {
-		t.Fatal(err)
-	}
-	zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
-	if err != nil {
-		t.Fatal(err)
-	}
-	have := map[string]bool{}
-	for _, f := range zr.File {
-		have[f.Name] = true
-	}
-	for goos, rel := range m.Launch.Path {
-		if !have[rel] {
-			t.Errorf("the manifest launches %s on %s, but the zip does not hold it (%v)", rel, goos, have)
+	bins := t.TempDir()
+	for _, c := range m.Components {
+		if len(c.Platforms) != 1 {
+			continue
 		}
+		goos, goarch, _ := strings.Cut(c.Platforms[0], "/")
+		name := "stellatinus-demo-" + goos + "-" + goarch
+		if goos == "windows" {
+			name += ".exe"
+		}
+		if err := os.WriteFile(filepath.Join(bins, name), []byte("program for "+c.Platforms[0]), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, dir := range []string{"", bins} {
+		for _, c := range m.Components {
+			if len(c.Platforms) != 1 {
+				continue
+			}
+			goos, _, _ := strings.Cut(c.Platforms[0], "/")
+			data, err := payload(m, c, dir, 1<<20)
+			if err != nil {
+				t.Fatal(err)
+			}
+			zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var got string
+			for _, f := range zr.File {
+				if f.Name == m.Launch.Path[goos] {
+					rc, _ := f.Open()
+					b, _ := io.ReadAll(rc)
+					_ = rc.Close()
+					got = string(b)
+				}
+			}
+			if got == "" {
+				t.Errorf("%s: the zip does not hold %s", c.ID, m.Launch.Path[goos])
+			}
+			if dir != "" && got != "program for "+c.Platforms[0] {
+				t.Errorf("%s: the zip holds %q, want the program built for that system", c.ID, got)
+			}
+		}
+	}
+	// A missing program is an error, not a placeholder in a real build.
+	if _, err := payload(m, m.Components[0], t.TempDir(), 1<<20); err == nil {
+		t.Error("an empty bin dir must be refused")
 	}
 }
 
@@ -95,7 +128,7 @@ func TestAComponentTheGeneratorDoesNotKnowIsRefused(t *testing.T) {
 	if err := os.WriteFile(p, []byte(doc), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := generate(p, t.TempDir(), 1<<20); err == nil || !strings.Contains(err.Error(), "other_thing") {
+	if err := generate(p, t.TempDir(), "", 1<<20); err == nil || !strings.Contains(err.Error(), "other_thing") {
 		t.Fatalf("got %v", err)
 	}
 }
@@ -104,7 +137,7 @@ func TestAComponentTheGeneratorDoesNotKnowIsRefused(t *testing.T) {
 // with a shortcut, then removed: what a person does with the test installer.
 func TestTheDemoInstallsAndIsRemovedCleanly(t *testing.T) {
 	out := t.TempDir()
-	if err := generate(demoManifest, out, 1<<20); err != nil {
+	if err := generate(demoManifest, out, "", 1<<20); err != nil {
 		t.Fatal(err)
 	}
 	srv := httptest.NewTLSServer(http.FileServer(http.Dir(out)))
@@ -144,7 +177,7 @@ func TestTheDemoInstallsAndIsRemovedCleanly(t *testing.T) {
 		t.Fatalf("shortcuts %v, notes %v", res.Shortcuts, res.ShortcutNotes)
 	}
 	for _, p := range []string{
-		filepath.Join(paths["install"], "bin", "stellatinus-demo"),
+		filepath.Join(paths["install"], "bin", "stellatinus-demo"), // the program for linux/amd64
 		filepath.Join(paths["install"], "config.json"),
 		filepath.Join(paths["models"], "demo-model.bin"),
 	} {

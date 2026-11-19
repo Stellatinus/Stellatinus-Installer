@@ -68,6 +68,9 @@ func TestShortcutsAreCreatedAndRemovedFromTheCommandLine(t *testing.T) {
 	if got := shortcutFiles(t, home); len(got) != 2 {
 		t.Fatalf("want 2 shortcuts, found %v\n%s", got, out)
 	}
+	if !strings.Contains(out, "Program: "+filepath.Join(r.app, "bin", "app.exe")) {
+		t.Fatalf("the output must say where the program is:\n%s", out)
+	}
 	if strings.Count(out, "Shortcut: ") != 2 {
 		t.Fatalf("the output must name both shortcuts:\n%s", out)
 	}
