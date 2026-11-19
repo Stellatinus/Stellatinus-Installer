@@ -2,7 +2,7 @@
 
 A small, shared installer, uninstaller and updater that Stellatinus apps embed in their own download. Each app brings a **manifest** (its name, folders, downloads, shortcuts and one accent colour); the installer gives it a polished setup window, safe checks before anything is written, an uninstaller that only removes what the installer created, and (later) an updater with verification and rollback.
 
-> **Status: early.** The engine can install an app from a manifest and remove it again from the **command line** (checks first, downloads checked against their hash, everything recorded, rollback on failure, and removal only when asked), and a spike shows the setup window's interface. There is **no setup window, no shortcuts and no updater yet**, and nothing has been verified on a real Windows, macOS or Linux machine. Follow the work in the [epic](https://github.com/Stellatinus/Stellatinus-Installer/issues/14) and read [docs/decisions.md](docs/decisions.md) for what is decided and what is open.
+> **Status: early.** The engine can install an app from a manifest and remove it again from the **command line** (checks first, downloads checked against their hash, everything recorded, rollback on failure, and removal only when asked), and a spike shows the setup window's interface. Shortcuts (Start menu and desktop) are made on request and an installation can be repaired. There is **no setup window and no updater yet**, and nothing has been verified on a real Windows, macOS or Linux machine. Follow the work in the [epic](https://github.com/Stellatinus/Stellatinus-Installer/issues/14) and read [docs/decisions.md](docs/decisions.md) for what is decided and what is open.
 
 ## What it is, and what it is not
 
@@ -42,7 +42,19 @@ flowchart LR
 | Microsoft Store builds | Postponed ([#8](https://github.com/Stellatinus/Stellatinus-Installer/issues/8)) |
 | Linux and macOS | Code compiles and its tests run in CI; behaviour not verified on real machines |
 
-## Try it
+## Try it without building
+
+> **These are unsigned test builds.** Windows SmartScreen and Defender will warn that the publisher is unknown (*More info*, then *Run anyway*); macOS Gatekeeper refuses the file until it is made executable (`chmod +x`) and opened once from the context menu. Nothing in them is verified on a real machine yet, and they will stop being published before a first real release, when signing exists ([#9](https://github.com/Stellatinus/Stellatinus-Installer/issues/9)).
+
+Every push to `main` replaces the files of the [**test-builds** pre-release](https://github.com/Stellatinus/Stellatinus-Installer/releases/tag/test-builds), which needs no GitHub account to download from:
+
+- `Stellatinus-Demo-Setup-<system>-<arch>` for Windows, Linux and macOS (amd64 and arm64): a **fake app** ("Stellatinus Demo") packed into a single-file installer. Double-click it (or run it in a terminal): it lists the folders and the shortcut it will use, asks, installs, and waits for Enter. With options it is the full command line: `Stellatinus-Demo-Setup-linux-amd64 install --shortcut desktop --set models=/some/folder`, `... repair`, `... uninstall --yes stellatinus-demo`.
+- `stellatinus-installer-<system>-<arch>`: the plain command line, with no manifest.
+- `SHA256SUMS.txt`: the checksum of every file (`sha256sum -c SHA256SUMS.txt`).
+
+The demo downloads a small zip and a larger generated file from the same release, has a folder you can point at an existing one (it is adopted and never removed), a port, English and Italian texts, and the accent colour of the manifest ([`examples/stellatinus-demo.json`](examples/stellatinus-demo.json); `go run ./tools/demo` makes the payload). The setup window will open from the same file when it exists; until then it runs in the console. What to try and what to report back is in the `[Test]` issues.
+
+## Build it yourself
 
 Requires Go 1.26 or newer (the same as Regulus). Use the newest patch release: `govulncheck` finds known standard-library vulnerabilities in older ones, and the installer uses `net/http`, `crypto/tls` and `archive/zip` (Go 1.26.11 or later was clean when this was written).
 
@@ -71,6 +83,8 @@ bin/stellatinus-installer install --dry-run --set install=/tmp/demo --set models
 | `internal/install` | downloading, checking, writing and rolling back an installation |
 | `internal/localui` | the local interface server for the setup window |
 | `internal/opener` | choosing and starting the window or browser |
+| `internal/shortcut` | where a shortcut goes per system, and writing it |
+| `tools/demo` | makes the payload and manifest of the test installer |
 | `spikes/window` | the window spike (not the product) |
 | `internal/record` | the installation record and safe removal |
 | `schema/` | the manifest's JSON Schema |

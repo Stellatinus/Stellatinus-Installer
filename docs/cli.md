@@ -7,8 +7,9 @@ stellatinus-installer version
 stellatinus-installer validate examples/haedus.json
 stellatinus-installer accent '#f2c200'
 stellatinus-installer check   [--scope user|machine] [--set location=path]... [--option id=number]... [--record file] [--json] <manifest.json>
-stellatinus-installer install [--scope user|machine] [--set location=path]... [--option id=number]... [--response file] [--silent] [--json] [--dry-run] <manifest.json>
+stellatinus-installer install [--scope user|machine] [--set location=path]... [--option id=number]... [--shortcut place]... [--response file] [--silent] [--json] [--dry-run] <manifest.json>
 stellatinus-installer uninstall [--scope user|machine] [--keep-location id]... [--keep-path path]... [--yes] [--silent] [--json] <record.json | app-id>
+stellatinus-installer repair  [--scope user|machine] [--yes] [--silent] [--json] <manifest.json>
 stellatinus-installer plan    [--keep-location id]... [--keep-path path]... [--json] <record.json>
 ```
 
@@ -19,7 +20,7 @@ stellatinus-installer plan    [--keep-location id]... [--keep-path path]... [--j
 3. With `--dry-run` it stops here and lists what would be downloaded and where.
 4. Downloads, checks and writes every component (see [the manifest](manifest.md)), saving the [installation record](glossary.md) after every step. If anything fails, or the process is interrupted (Ctrl+C), **everything this run created is removed**, and what was already there (an adopted folder, the user's files) is left alone.
 
-An app that is already recorded is refused: remove it first. Repair and update come with the updater ([#7](https://github.com/Stellatinus/Stellatinus-Installer/issues/7)).
+An app that is already recorded is refused: remove it first, or [repair](#repair) it. Update comes with the updater ([#7](https://github.com/Stellatinus/Stellatinus-Installer/issues/7)).
 
 `--silent` prints nothing except errors. `--json` prints one JSON event per line (below).
 
@@ -41,7 +42,19 @@ A JSON file that answers what the window would ask, so no one has to be there. U
 
 `--option id=number` answers an option (a port) and wins over the response file; an answer for an option the manifest does not have is a usage error, and a port that is not from 1024 to 65535, or is busy, is refused before anything is downloaded. Only the components for this system (`platforms`) are installed.
 
-Shortcuts are not part of it yet: they are not created by the engine ([#26](https://github.com/Stellatinus/Stellatinus-Installer/issues/26)).
+`"shortcuts": ["start_menu", "desktop"]` asks for shortcuts, and `--shortcut start_menu,desktop` (repeatable, or separated by commas) adds to it. Nothing is made unless asked: a silent install never puts anything on the desktop by itself.
+
+### Shortcuts
+
+A shortcut starts the program the manifest's `launch` names. The places and what is made:
+
+| Place | Windows | Linux | macOS |
+|---|---|---|---|
+| `start_menu` | `Programs\<Name>.lnk` under `%APPDATA%\Microsoft\Windows\Start Menu` (all users: `%ProgramData%`) | `<app id>.desktop` in `~/.local/share/applications` (all users: `/usr/share/applications`) | a link in `~/Applications` (all users: `/Applications`) |
+| `desktop` | `<Name>.lnk` in `%USERPROFILE%\Desktop` (all users: `%PUBLIC%\Desktop`) | `<app id>.desktop` in the desktop folder named by `user-dirs.dirs`, else `~/Desktop` | a link in `~/Desktop` |
+| `taskbar` | **not made**: no supported way to pin from an installer; a note says so | not made | not made |
+
+Rules that hold everywhere: the manifest must **offer** the place and name a program for this system, or the request is refused before anything is done (exit 1); a shortcut is **never written over** a file that is already there (that one is reported and left, and uninstall will not touch it); the desktop folder is never created (a missing one is a note), the Start menu folder is, and it is not removed; a program that was not unpacked is a note, not a shortcut to nothing; each shortcut is recorded (kind `shortcut`, owner `installer`) before it is written, so a rollback or `uninstall` removes it, as the link itself and never its target. Desktop shortcuts for all users exist on Windows only. `--dry-run` prints the path of each shortcut it would make, and the result lists them (`shortcuts`) and the notes (`notes`).
 
 ### Where the record lives
 
@@ -59,6 +72,18 @@ Files and shortcuts go first, then folders from the deepest up. A folder that st
 
 `plan` is `uninstall` without `--yes`, for a record path.
 
+## `repair`
+
+Checks an installation against its record and puts back what is damaged. It takes the manifest (or runs from a packed installer) because it needs the download addresses and hashes; the record is found from the app id and the scope.
+
+1. **Check.** Every file the installer wrote is looked at: it must exist, be a regular file, and have the size and sha256 recorded when it was written. Not checked, because they are not the installer's to judge: adopted files, files an app registered later, and folders (they are made again when a file needs them). A settings file that was **edited** is accepted (it is the user's); one that was **deleted** is a problem.
+2. **Report.** Each problem is `missing`, `changed` or `conflict` (something else stands where the file goes: a folder, a link, a path that leads through a link). A conflict is **never touched**. Without `--yes` that is all: nothing is changed and the exit status is 1 when there is a problem.
+3. **Repair (`--yes`).** For each component with a damaged file, the component is downloaded again and checked like an installation (https, size, sha256, a zip's entries checked as for `install`); then **only the damaged files** are written, each through a temporary name and renamed into place. A deleted settings file is written again from the answers the record kept. Components that are intact are not downloaded. The record is saved after each component.
+
+The manifest must be for the version that is installed (repair puts back what was installed; it does not update), the record must be one made by this version of the installer (older ones do not say which folders were chosen), and the installation must be for the same app id; otherwise it stops with exit 1 before any download.
+
+Exit status: 0 intact, or repaired; 1 a problem was found and nothing was changed (without `--yes`, nothing can be fixed, or the manifest and record do not match); 6 the repair could not put everything back (a download failed, a conflict was left, it was interrupted) and says what is left. Running it again finishes the job.
+
 ## `pack`, `register`, `unregister`
 
 `pack` makes the single-file installer; `register` and `unregister` keep the record true for files an app makes later. Both are explained in [embedding.md](embedding.md). `install` and `check` take no manifest file when run from a packed installer.
@@ -73,6 +98,7 @@ Files and shortcuts go first, then folders from the deepest up. A folder that st
 | 3 | the installation failed (or was cancelled) and **was rolled back**: everything it created was removed | `install` |
 | 4 | the installation failed and **something could not be removed**; the message lists it, and the record, which is kept, lists what is left: run `uninstall --yes` on it | `install` |
 | 5 | the removal finished but **some items could not be removed**; they stay in the record | `uninstall` |
+| 6 | the repair **could not put everything back** (a download failed, a conflict was left, it was interrupted); nothing was lost and running it again continues | `repair` |
 
 ## JSON events
 
@@ -84,8 +110,9 @@ With `--json` every line of standard output is one JSON object with an `event`:
 | `progress` | `phase` (`prepare`, `download`, `verify`, `unpack`, `done`), `component`, `label`, `file`, `done`, `total`, `index`, `count`. `label` is the plain sentence for a progress bar; `file` is the real name, for an advanced log |
 | `log` | `message` |
 | `plan` | `action`, `path`, `kind`, `size`, `reason` (for `uninstall`) |
+| `problem` | `path`, `kind` (`missing`, `changed`, `conflict`), `component`, `reason`, `fixable` (for `repair`) |
 | `result` | always the last line: `ok`, `exit`, and `error`, `rolled_back`, `record`, `files`, `skipped`, `removed_count`, `kept`, `protected` as they apply |
 
 ## Not verified on a real machine
 
-The command line is tested against a local HTTPS server on Linux, and compiled and tested on Windows and macOS runners. Real networks, antivirus, Windows file locks, and elevation have not been tried ([#13](https://github.com/Stellatinus/Stellatinus-Installer/issues/13), [#18](https://github.com/Stellatinus/Stellatinus-Installer/issues/18)).
+The command line is tested against a local HTTPS server on Linux, and compiled and tested on Windows and macOS runners. Real networks, antivirus, Windows file locks, and elevation have not been tried ([#13](https://github.com/Stellatinus/Stellatinus-Installer/issues/13), [#18](https://github.com/Stellatinus/Stellatinus-Installer/issues/18)). The shortcuts (the `.lnk` is written by hand) are checked only by reading the bytes back, not by Windows, GNOME, KDE or macOS ([#39](https://github.com/Stellatinus/Stellatinus-Installer/issues/39)); `repair` and the test installers have not run on a real machine ([#40](https://github.com/Stellatinus/Stellatinus-Installer/issues/40)).

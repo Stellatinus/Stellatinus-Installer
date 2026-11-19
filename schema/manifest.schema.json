@@ -50,6 +50,9 @@
     "shortcuts": {
       "$ref": "#/$defs/shortcuts"
     },
+    "launch": {
+      "$ref": "#/$defs/launch"
+    },
     "options": {
       "type": "array",
       "items": {
@@ -237,6 +240,31 @@
             "pattern": "^(windows|linux|darwin)(/(amd64|arm64))?$"
           },
           "description": "Limits the component to some systems; empty means every system."
+        }
+      }
+    },
+    "launch": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The program a shortcut starts: a path inside a location, for each system, written with '/'. Required when a shortcut is offered.",
+      "properties": {
+        "location": {
+          "type": "string"
+        },
+        "path": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "windows": {
+              "type": "string"
+            },
+            "linux": {
+              "type": "string"
+            },
+            "darwin": {
+              "type": "string"
+            }
+          }
         }
       }
     },

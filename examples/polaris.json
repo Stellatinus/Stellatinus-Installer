@@ -68,6 +68,13 @@
       "default": false
     }
   },
+  "launch": {
+    "location": "install",
+    "path": {
+      "windows": "Polaris.exe",
+      "darwin": "Polaris.app"
+    }
+  },
   "texts": {
     "it": {
       "app.name": "Polaris",

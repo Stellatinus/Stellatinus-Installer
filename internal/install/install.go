@@ -2,8 +2,9 @@
 // against its sha256, writes them into the chosen folders and records every
 // file and folder it creates, so the installation can be removed. If anything
 // fails it removes what this run created and leaves everything that was there
-// before untouched. It does not create shortcuts, show anything or decide
-// which folders to use, and it does not update an existing installation: a
+// before untouched. It creates the shortcuts it is asked for (see package
+// shortcut) and records them. It does not show anything or decide which
+// folders or shortcuts to use, and it does not update an existing installation: a
 // second run over a recorded installation is refused.
 package install
 
@@ -26,6 +27,7 @@ import (
 	"github.com/Stellatinus/Stellatinus-Installer/internal/manifest"
 	"github.com/Stellatinus/Stellatinus-Installer/internal/record"
 	"github.com/Stellatinus/Stellatinus-Installer/internal/safepath"
+	"github.com/Stellatinus/Stellatinus-Installer/internal/shortcut"
 )
 
 // Phase is what the installer is doing.
@@ -80,6 +82,12 @@ type Options struct {
 	// the manifest's default.
 	GOOS, GOARCH string
 	Answers      map[string]int
+
+	// Shortcuts are the places to put a shortcut to the program the manifest's
+	// launch names. Each must be offered by the manifest. Env reads the
+	// environment variables that decide where they go (default os.Getenv).
+	Shortcuts []shortcut.Place
+	Env       func(string) string
 }
 
 // Result is what a successful run leaves behind.
@@ -88,6 +96,11 @@ type Result struct {
 	// Skipped lists components whose file was already in place with the right
 	// hash, so nothing was downloaded.
 	Skipped []string
+	// Shortcuts lists the shortcuts that were created; ShortcutNotes says, in a
+	// sentence each, why a requested one was not (it was already there, the
+	// desktop folder does not exist, the taskbar).
+	Shortcuts     []string
+	ShortcutNotes []string
 }
 
 // Error is returned when an installation fails. RolledBack says whether
@@ -110,7 +123,7 @@ func (e *Error) Error() string {
 func (e *Error) Unwrap() error { return e.Err }
 
 // ErrAlreadyInstalled is returned when a record already exists at RecordPath.
-var ErrAlreadyInstalled = errors.New("an installation is already recorded here; remove it first (repair and update are not built yet)")
+var ErrAlreadyInstalled = errors.New("an installation is already recorded here; remove it first, or run repair to restore it (updating to another version is not built yet)")
 
 func (o *Options) defaults() {
 	if o.IdleTimeout <= 0 {
@@ -146,6 +159,10 @@ type runner struct {
 	paths   map[string]string // folder chosen for each location
 	created []record.Entry    // what this run created, in order
 	skipped []string
+
+	count     int      // components shown in the progress; 0 means all of comps
+	shortcuts []string // created
+	notes     []string // requested and not created, with the reason
 }
 
 // Run installs every component of the manifest.
@@ -176,6 +193,9 @@ func Run(ctx context.Context, m *manifest.Manifest, opt Options) (*Result, error
 	if scope == "" {
 		scope = m.Scope
 	}
+	if err := checkShortcuts(m, opt); err != nil {
+		return nil, err
+	}
 	r := &runner{m: m, comps: m.ComponentsFor(opt.GOOS, opt.GOARCH), answers: answers, opt: opt, paths: map[string]string{}}
 	for id, p := range opt.Paths {
 		r.paths[id] = filepath.Clean(p)
@@ -183,6 +203,11 @@ func Run(ctx context.Context, m *manifest.Manifest, opt Options) (*Result, error
 	// The record's location roots are filled in as folders are made, because a
 	// root is the highest folder this run created (or the folder that existed).
 	r.rec = record.New(m.App.ID, m.App.Version, scope, nil)
+	r.rec.Paths = map[string]string{}
+	for id, p := range r.paths {
+		r.rec.Paths[id] = p
+	}
+	r.rec.Answers = answers
 
 	if err := r.prepare(); err != nil {
 		return nil, r.fail(err)
@@ -207,8 +232,14 @@ func Run(ctx context.Context, m *manifest.Manifest, opt Options) (*Result, error
 	if err := r.save(); err != nil {
 		return nil, r.fail(err)
 	}
+	if err := r.makeShortcuts(scope); err != nil {
+		return nil, r.fail(err)
+	}
+	if err := r.save(); err != nil {
+		return nil, r.fail(err)
+	}
 	r.emit(Event{Phase: PhaseDone, Index: len(r.comps), Count: len(r.comps)})
-	return &Result{Record: r.rec, Skipped: r.skipped}, nil
+	return &Result{Record: r.rec, Skipped: r.skipped, Shortcuts: r.shortcuts, ShortcutNotes: r.notes}, nil
 }
 
 func (r *runner) emit(e Event) {
@@ -382,7 +413,11 @@ func (r *runner) component(ctx context.Context, idx int, c manifest.Component) e
 }
 
 func (r *runner) event(idx int, c manifest.Component, phase Phase, file string, done, total int64) {
-	r.emit(Event{Phase: phase, Component: c.ID, Label: c.Label, File: file, Done: done, Total: total, Index: idx + 1, Count: len(r.comps)})
+	count := len(r.comps)
+	if r.count > 0 {
+		count = r.count
+	}
+	r.emit(Event{Phase: phase, Component: c.ID, Label: c.Label, File: file, Done: done, Total: total, Index: idx + 1, Count: count})
 }
 
 func (r *runner) installFile(ctx context.Context, idx int, c manifest.Component, base string) error {
@@ -400,7 +435,7 @@ func (r *runner) installFile(ctx context.Context, idx int, c manifest.Component,
 		}
 		r.logf("%s is already in place with the right sha256; not downloading it", dest)
 		r.skipped = append(r.skipped, c.ID)
-		return r.rec.Add(record.Entry{Path: dest, Kind: record.KindFile, Owner: record.OwnerAdopted, Size: info.Size(), Location: c.Location, Origin: c.ID})
+		return r.rec.Add(record.Entry{Path: dest, Kind: record.KindFile, Owner: record.OwnerAdopted, Size: info.Size(), SHA256: sum, Location: c.Location, Origin: c.ID})
 	} else if !errors.Is(err, fs.ErrNotExist) {
 		return err
 	}
@@ -420,7 +455,7 @@ func (r *runner) installFile(ctx context.Context, idx int, c manifest.Component,
 	}
 	r.untrack(part)
 	r.logf("wrote %s", dest)
-	return r.track(record.Entry{Path: dest, Kind: record.KindFile, Owner: record.OwnerInstaller, Size: c.Size, Location: c.Location, Origin: c.ID})
+	return r.track(record.Entry{Path: dest, Kind: record.KindFile, Owner: record.OwnerInstaller, Size: c.Size, SHA256: c.SHA256, Location: c.Location, Origin: c.ID})
 }
 
 // fail removes what this run created and returns the error to report.
@@ -488,37 +523,46 @@ func resolveAnswers(m *manifest.Manifest, given map[string]int) (map[string]int,
 // A file that already exists is never overwritten.
 func (r *runner) writeConfig() error {
 	for _, cf := range r.m.Config {
-		root := r.paths[cf.Location]
-		dest := filepath.Join(root, cf.Name)
-		r.emit(Event{Phase: PhaseConfig, File: dest})
-		if _, err := os.Lstat(dest); err == nil {
-			return fmt.Errorf("%s already exists; not overwriting it", dest)
-		} else if !errors.Is(err, fs.ErrNotExist) {
+		if err := r.writeConfigFile(cf); err != nil {
 			return err
 		}
-		obj := map[string]any{}
-		for key, opt := range cf.Values {
-			obj[key] = r.answers[opt]
-		}
-		data, err := json.MarshalIndent(obj, "", "  ")
-		if err != nil {
-			return err
-		}
-		tmp := dest + ".stellatinus-tmp"
-		if err := r.track(record.Entry{Path: tmp, Kind: record.KindFile, Owner: record.OwnerInstaller, Location: cf.Location, Origin: "config"}); err != nil {
-			return err
-		}
-		if err := os.WriteFile(tmp, append(data, '\n'), 0o644); err != nil {
-			return err
-		}
-		if err := os.Rename(tmp, dest); err != nil {
-			return err
-		}
-		r.untrack(tmp)
-		if err := r.track(record.Entry{Path: dest, Kind: record.KindFile, Owner: record.OwnerInstaller, Size: int64(len(data) + 1), Location: cf.Location, Origin: "config"}); err != nil {
-			return err
-		}
-		r.logf("wrote %s", dest)
 	}
+	return nil
+}
+
+func (r *runner) writeConfigFile(cf manifest.ConfigFile) error {
+	root := r.paths[cf.Location]
+	dest := filepath.Join(root, cf.Name)
+	r.emit(Event{Phase: PhaseConfig, File: dest})
+	if _, err := os.Lstat(dest); err == nil {
+		return fmt.Errorf("%s already exists; not overwriting it", dest)
+	} else if !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	obj := map[string]any{}
+	for key, opt := range cf.Values {
+		obj[key] = r.answers[opt]
+	}
+	data, err := json.MarshalIndent(obj, "", "  ")
+	if err != nil {
+		return err
+	}
+	data = append(data, '\n')
+	tmp := dest + ".stellatinus-tmp"
+	if err := r.track(record.Entry{Path: tmp, Kind: record.KindFile, Owner: record.OwnerInstaller, Location: cf.Location, Origin: "config"}); err != nil {
+		return err
+	}
+	if err := os.WriteFile(tmp, data, 0o644); err != nil {
+		return err
+	}
+	if err := os.Rename(tmp, dest); err != nil {
+		return err
+	}
+	r.untrack(tmp)
+	h := sha256.Sum256(data)
+	if err := r.track(record.Entry{Path: dest, Kind: record.KindFile, Owner: record.OwnerInstaller, Size: int64(len(data)), SHA256: hex.EncodeToString(h[:]), Location: cf.Location, Origin: "config"}); err != nil {
+		return err
+	}
+	r.logf("wrote %s", dest)
 	return nil
 }

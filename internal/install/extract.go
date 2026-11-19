@@ -3,6 +3,8 @@ package install
 import (
 	"archive/zip"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -55,7 +57,7 @@ func (r *runner) installZip(ctx context.Context, idx int, c manifest.Component, 
 	}
 	defer func() { _ = zr.Close() }()
 
-	targets, total, err := r.planZip(zr, base)
+	targets, total, err := r.planZip(zr, base, false)
 	if err != nil {
 		return fmt.Errorf("%s: %w", c.Label, err)
 	}
@@ -96,7 +98,10 @@ func (r *runner) installZip(ctx context.Context, idx int, c manifest.Component, 
 	return nil
 }
 
-func (r *runner) planZip(zr *zip.ReadCloser, base string) ([]zipTarget, int64, error) {
+// planZip checks every entry of the archive. With allowExisting a file that is
+// already at its target is accepted (repair replaces those it has found
+// damaged); an installation never does.
+func (r *runner) planZip(zr *zip.ReadCloser, base string, allowExisting bool) ([]zipTarget, int64, error) {
 	if len(zr.File) > r.opt.MaxEntries {
 		return nil, 0, fmt.Errorf("the archive has %d entries, more than the %d allowed", len(zr.File), r.opt.MaxEntries)
 	}
@@ -140,7 +145,7 @@ func (r *runner) planZip(zr *zip.ReadCloser, base string) ([]zipTarget, int64, e
 			}
 		}
 		target := filepath.Join(base, rel)
-		if !isDir {
+		if !isDir && !allowExisting {
 			if _, err := os.Lstat(target); err == nil {
 				return nil, 0, fmt.Errorf("%s already exists; not overwriting it", target)
 			} else if !errors.Is(err, fs.ErrNotExist) {
@@ -180,7 +185,8 @@ func (r *runner) writeEntry(c manifest.Component, t zipTarget) (int64, error) {
 		return 0, err
 	}
 	want := int64(t.f.UncompressedSize64)
-	n, err := io.Copy(out, io.LimitReader(rc, want+1))
+	h := sha256.New()
+	n, err := io.Copy(io.MultiWriter(out, h), io.LimitReader(rc, want+1))
 	if cerr := out.Close(); err == nil {
 		err = cerr
 	}
@@ -194,5 +200,5 @@ func (r *runner) writeEntry(c manifest.Component, t zipTarget) (int64, error) {
 		return 0, err
 	}
 	r.untrack(tmp)
-	return n, r.track(record.Entry{Path: t.target, Kind: record.KindFile, Owner: record.OwnerInstaller, Size: n, Location: c.Location, Origin: c.ID})
+	return n, r.track(record.Entry{Path: t.target, Kind: record.KindFile, Owner: record.OwnerInstaller, Size: n, SHA256: hex.EncodeToString(h.Sum(nil)), Location: c.Location, Origin: c.ID})
 }

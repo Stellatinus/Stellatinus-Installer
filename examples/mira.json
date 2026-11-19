@@ -78,6 +78,12 @@
       "default": false
     }
   },
+  "launch": {
+    "location": "install",
+    "path": {
+      "windows": "Mira.exe"
+    }
+  },
   "texts": {
     "it": {
       "app.name": "Mira",

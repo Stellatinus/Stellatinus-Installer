@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "app": {
+    "id": "stellatinus-demo",
+    "name": "Stellatinus Demo",
+    "version": "0.1.0-test",
+    "publisher": "Stellatinus",
+    "accent": "#2f6df6",
+    "description": "A fake app to try the installer: nothing in it does anything. Install it, adopt a folder, remove it."
+  },
+  "scope": "user",
+  "allow_machine": true,
+  "locations": [
+    {
+      "id": "install",
+      "label": "Program",
+      "kind": "install",
+      "required": true,
+      "default": {
+        "windows": "${LOCALAPPDATA}\\StellatinusDemo",
+        "linux": "${HOME}/.local/share/stellatinus-demo",
+        "darwin": "${HOME}/Applications/StellatinusDemo"
+      }
+    },
+    {
+      "id": "models",
+      "label": "Sample models",
+      "kind": "models",
+      "adopt": true,
+      "on_uninstall": "ask",
+      "default": {
+        "windows": "${USERPROFILE}\\Documents\\StellatinusDemo\\Models",
+        "linux": "${HOME}/.local/share/stellatinus-demo-models",
+        "darwin": "${HOME}/Documents/StellatinusDemo/Models"
+      }
+    },
+    {
+      "id": "output",
+      "label": "Results",
+      "kind": "output",
+      "on_uninstall": "keep",
+      "default": {
+        "windows": "${USERPROFILE}\\Documents\\StellatinusDemo\\Results",
+        "linux": "${HOME}/Documents/StellatinusDemoResults",
+        "darwin": "${HOME}/Documents/StellatinusDemo/Results"
+      }
+    }
+  ],
+  "components": [
+    {
+      "id": "app",
+      "label": "The demo program",
+      "kind": "zip",
+      "url": "https://github.com/Stellatinus/Stellatinus-Installer/releases/download/test-builds/demo-app.zip",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size": 1,
+      "location": "install"
+    },
+    {
+      "id": "sample_model",
+      "label": "A sample model (a large file, to see the progress bar)",
+      "url": "https://github.com/Stellatinus/Stellatinus-Installer/releases/download/test-builds/demo-model.bin",
+      "name": "demo-model.bin",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size": 1,
+      "location": "models"
+    }
+  ],
+  "options": [
+    {
+      "id": "port",
+      "label": "Port the demo would listen on",
+      "kind": "port",
+      "default": 5090
+    }
+  ],
+  "config": [
+    {
+      "location": "install",
+      "name": "config.json",
+      "format": "json",
+      "values": {
+        "port": "port"
+      }
+    }
+  ],
+  "shortcuts": {
+    "start_menu": {
+      "offer": true,
+      "default": true
+    },
+    "taskbar": {
+      "offer": true,
+      "default": false
+    },
+    "desktop": {
+      "offer": true,
+      "default": false
+    }
+  },
+  "launch": {
+    "location": "install",
+    "path": {
+      "windows": "bin/StellatinusDemo.exe",
+      "linux": "bin/stellatinus-demo",
+      "darwin": "bin/stellatinus-demo"
+    }
+  },
+  "texts": {
+    "it": {
+      "app.name": "Stellatinus Demo",
+      "app.description": "Un'app finta per provare l'installer: non fa nulla. Installala, adotta una cartella, rimuovila.",
+      "location.install.label": "Programma",
+      "location.models.label": "Modelli di esempio",
+      "location.output.label": "Risultati",
+      "component.app.label": "Il programma demo",
+      "component.sample_model.label": "Un modello di esempio (un file grande, per vedere la barra di avanzamento)",
+      "option.port.label": "Porta su cui la demo ascolterebbe"
+    }
+  }
+}

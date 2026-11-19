@@ -84,6 +84,14 @@
       "default": false
     }
   },
+  "launch": {
+    "location": "install",
+    "path": {
+      "windows": "Regulus.exe",
+      "linux": "regulus-desktop",
+      "darwin": "Regulus.app"
+    }
+  },
   "texts": {
     "it": {
       "app.name": "Regulus Desktop",

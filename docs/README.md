@@ -6,6 +6,7 @@
 | [cli.md](cli.md) | every command, the exit codes, the response file and the JSON events |
 | [embedding.md](embedding.md) | the single-file installer (`pack`) and how an app registers files it makes later |
 | [manifest.md](manifest.md) | every manifest field, with an example |
+| [platforms.md](platforms.md) | Windows, Linux and macOS: what works, per user and for all users, where things go, what is not supported |
 | [window.md](window.md) | the setup window: what is built, the options, the proposal, what only a real desktop can settle |
 | [decisions.md](decisions.md) | why things are the way they are, what is still open, what has not been verified on a real machine |
 | [glossary.md](glossary.md) | what each term means today |

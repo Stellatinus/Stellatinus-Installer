@@ -202,6 +202,8 @@ func (m *Manifest) validateExtras(add func(string, ...any), locIDs, compIDs map[
 		seen[id] = true
 	}
 
+	m.validateLaunch(add, locIDs)
+
 	keys := m.textKeys()
 	for lang, texts := range m.Texts {
 		if lang == "en" {
@@ -221,4 +223,47 @@ func (m *Manifest) validateExtras(add func(string, ...any), locIDs, compIDs map[
 			}
 		}
 	}
+}
+
+// Offered reports whether the manifest offers a shortcut anywhere.
+func (s Shortcuts) Offered() bool { return s.StartMenu.Offer || s.Desktop.Offer || s.Taskbar.Offer }
+
+// validateLaunch checks the program a shortcut starts.
+func (m *Manifest) validateLaunch(add func(string, ...any), locIDs map[string]bool) {
+	l := m.Launch
+	if l.Location == "" && len(l.Path) == 0 {
+		if m.Shortcuts.Offered() {
+			add("launch is required when a shortcut is offered: say which program it starts")
+		}
+		return
+	}
+	if !locIDs[l.Location] {
+		add("launch.location %q is not one of the locations", l.Location)
+	}
+	if len(l.Path) == 0 {
+		add("launch.path needs a program for at least one system")
+	}
+	for sys, p := range l.Path {
+		if sys != "windows" && sys != "linux" && sys != "darwin" {
+			add("launch.path has an unknown system %q", sys)
+			continue
+		}
+		if _, err := safepath.CleanRel(p); err != nil {
+			add("launch.path.%s: %v", sys, err)
+		}
+	}
+}
+
+// LaunchPath returns the program a shortcut starts on a system, relative to
+// the launch location, and whether there is one.
+func (m *Manifest) LaunchPath(goos string) (location, rel string, ok bool) {
+	p, ok := m.Launch.Path[goos]
+	if !ok {
+		return "", "", false
+	}
+	clean, err := safepath.CleanRel(p)
+	if err != nil {
+		return "", "", false
+	}
+	return m.Launch.Location, clean, true
 }

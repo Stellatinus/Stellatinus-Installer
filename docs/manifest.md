@@ -95,9 +95,17 @@ English is the base, written in the fields themselves. `texts` adds other langua
 
 Keys: `app.name`, `app.description`, `location.<id>.label`, `component.<id>.label`, `option.<id>.label`. A key that names nothing, or an empty or very long text, is an error. The window uses `m.Text(lang, key)`: the translation (for `pt-BR` also `pt`), else English. The Stellatinus apps are bilingual, so a test requires every example to have an Italian text for everything that has an English one ("MissingTexts"); a third party may leave languages out.
 
+## `launch`
+
+The program a shortcut starts: `location` (one of the locations) and `path`, a program per system written with `/`, inside that location. It is **required when a shortcut is offered**, and a shortcut is made only on a system that has a path.
+
+```json
+"launch": { "location": "install", "path": { "windows": "Haedus.exe", "linux": "bin/haedus", "darwin": "Haedus.app" } }
+```
+
 ## `shortcuts`
 
-`start_menu`, `taskbar` and `desktop`, each with `offer` (show the question) and `default` (ticked at first). The taskbar is best effort: Windows has no supported way to pin an app from an installer (not verified here), so it may become a hint on the last screen ([#10](https://github.com/Stellatinus/Stellatinus-Installer/issues/10)).
+`start_menu`, `taskbar` and `desktop`, each with `offer` (show the question) and `default` (ticked at first). The taskbar is best effort: Windows has no supported way to pin an app from an installer (not verified here), so the engine never makes one: it says so in a note, and the window shows a hint on the last screen. Where each shortcut goes on each system is in [cli.md](cli.md#shortcuts).
 
 ## Not in the format yet
 
@@ -105,7 +113,7 @@ The update source and trust anchor ([#7](https://github.com/Stellatinus/Stellati
 
 ## Examples
 
-[`examples/`](../examples) has a manifest for each adopter: `haedus.json`, `mira.json` (a port written to `config.json`, settings kept on removal), `polaris.json` and `regulus-desktop.json` (illustrative: those apps do not have packages yet), and `minimal.json`. Their URLs and hashes are fake (`example.invalid`). Every one is checked by the tests: valid, fully translated to Italian, and with default folders that do not overlap on any system.
+[`examples/`](../examples) has a manifest for each adopter, and `stellatinus-demo.json`, the fake app of the [test installers](../README.md#try-it-without-building) (its hashes are filled in by `tools/demo` in CI): `haedus.json`, `mira.json` (a port written to `config.json`, settings kept on removal), `polaris.json` and `regulus-desktop.json` (illustrative: those apps do not have packages yet), and `minimal.json`. Their URLs and hashes are fake (`example.invalid`; the demo points at the test-builds release). Every one is checked by the tests: valid, fully translated to Italian, and with default folders that do not overlap on any system.
 
 ## Anything an app adds later
 
