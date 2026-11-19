@@ -14,12 +14,12 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"math/rand/v2"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/Stellatinus/Stellatinus-Installer/internal/manifest"
@@ -28,42 +28,63 @@ import (
 func main() {
 	manifestPath := flag.String("manifest", "examples/stellatinus-demo.json", "the demo manifest, with placeholder hashes")
 	out := flag.String("out", "", "the folder to write the payload and manifest.json into (required)")
+	binDir := flag.String("bin-dir", "", "the folder with the built demo programs, stellatinus-demo-<os>-<arch>[.exe] (default: text placeholders)")
 	modelMiB := flag.Int("model-mib", 32, "size of the generated sample model, in MiB")
 	flag.Parse()
 	if *out == "" || *modelMiB < 1 {
 		flag.Usage()
 		os.Exit(2)
 	}
-	if err := generate(*manifestPath, *out, int64(*modelMiB)<<20); err != nil {
+	if err := generate(*manifestPath, *out, *binDir, int64(*modelMiB)<<20); err != nil {
 		fmt.Fprintln(os.Stderr, "demo:", err)
 		os.Exit(1)
 	}
 }
 
-// payload returns the bytes of each component of the demo manifest, by id. A
-// component the generator does not know is an error, so the manifest and the
-// generator cannot drift apart without a test failing.
-func payload(id string, modelSize int64) ([]byte, error) {
-	switch id {
-	case "app":
-		return demoZip()
-	case "sample_model":
+// payload returns the bytes of a component of the demo manifest. A component
+// the generator does not know is an error, so the manifest and the generator
+// cannot drift apart without a test failing. The program of each system comes
+// from binDir (built by CI from tools/demoapp as stellatinus-demo-<os>-<arch>,
+// with .exe on Windows); without binDir a text placeholder stands in, which is
+// enough for tests but is not a program.
+func payload(m *manifest.Manifest, c manifest.Component, binDir string, modelSize int64) ([]byte, error) {
+	if c.ID == "sample_model" {
 		return demoModel(modelSize), nil
 	}
-	return nil, fmt.Errorf("the demo manifest has a component %q that this generator does not know how to make", id)
+	if len(c.Platforms) != 1 || !strings.HasPrefix(c.ID, "app_") {
+		return nil, fmt.Errorf("the demo manifest has a component %q that this generator does not know how to make", c.ID)
+	}
+	goos, goarch, _ := strings.Cut(c.Platforms[0], "/")
+	rel, ok := m.Launch.Path[goos]
+	if !ok || goarch == "" {
+		return nil, fmt.Errorf("component %q: the manifest launches nothing on %s", c.ID, c.Platforms[0])
+	}
+	prog := []byte("Placeholder: Stellatinus Demo is built from tools/demoapp.\n")
+	if binDir != "" {
+		name := "stellatinus-demo-" + goos + "-" + goarch
+		if goos == "windows" {
+			name += ".exe"
+		}
+		b, err := os.ReadFile(filepath.Join(binDir, name))
+		if err != nil {
+			return nil, fmt.Errorf("component %q: %w", c.ID, err)
+		}
+		prog = b
+	}
+	return demoZip(rel, prog)
 }
 
-func demoZip() ([]byte, error) {
+// demoZip holds the program at rel (executable) and a README.
+func demoZip(rel string, program []byte) ([]byte, error) {
 	var buf bytes.Buffer
 	zw := zip.NewWriter(&buf)
 	files := []struct {
 		name string
 		mode os.FileMode
-		data string
+		data []byte
 	}{
-		{"README.txt", 0o644, "Stellatinus Demo\n\nThis is a fake app made to try the installer. Nothing in it runs.\n"},
-		{"bin/stellatinus-demo", 0o755, "#!/bin/sh\necho 'Stellatinus Demo: a fake program, it does nothing.'\n"},
-		{"bin/StellatinusDemo.exe", 0o644, "Not a real program: Stellatinus Demo is a fake app.\n"},
+		{"README.txt", 0o644, []byte("Stellatinus Demo\n\nA small app made to try the installer. It prints a message and does nothing else.\n")},
+		{rel, 0o755, program},
 	}
 	for _, f := range files {
 		h := &zip.FileHeader{Name: f.name, Method: zip.Deflate, Modified: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)}
@@ -72,7 +93,7 @@ func demoZip() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		if _, err := io.WriteString(w, f.data); err != nil {
+		if _, err := w.Write(f.data); err != nil {
 			return nil, err
 		}
 	}
@@ -96,7 +117,7 @@ func demoModel(size int64) []byte {
 	return b
 }
 
-func generate(manifestPath, out string, modelSize int64) error {
+func generate(manifestPath, out, binDir string, modelSize int64) error {
 	m, err := manifest.Load(manifestPath)
 	if err != nil {
 		return err
@@ -117,7 +138,7 @@ func generate(manifestPath, out string, modelSize int64) error {
 		return fmt.Errorf("the manifest lists %d components and %d were read", len(comps), len(m.Components))
 	}
 	for i, c := range m.Components {
-		data, err := payload(c.ID, modelSize)
+		data, err := payload(m, c, binDir, modelSize)
 		if err != nil {
 			return err
 		}

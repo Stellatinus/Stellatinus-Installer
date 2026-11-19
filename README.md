@@ -52,6 +52,8 @@ Every push to `main` replaces the files of the [**test-builds** pre-release](htt
 - `stellatinus-installer-<system>-<arch>`: the plain command line, with no manifest.
 - `SHA256SUMS.txt`: the checksum of every file (`sha256sum -c SHA256SUMS.txt`).
 
+The demo's program is a few lines of Go (`tools/demoapp`): started from the shortcut or from the path the installer prints (`Program: ...`), it opens a console that says it is the demo, where it was installed and what `config.json` holds, and waits for Enter. The program lives in the **Program** folder (on Windows `%LOCALAPPDATA%\StellatinusDemo\bin`, a hidden-by-default folder), not in Documents: Documents only holds the two folders the demo uses for models and results.
+
 The demo downloads a small zip and a larger generated file from the same release, has a folder you can point at an existing one (it is adopted and never removed), a port, English and Italian texts, and the accent colour of the manifest ([`examples/stellatinus-demo.json`](examples/stellatinus-demo.json); `go run ./tools/demo` makes the payload). The setup window will open from the same file when it exists; until then it runs in the console. What to try and what to report back is in the `[Test]` issues.
 
 ## Build it yourself

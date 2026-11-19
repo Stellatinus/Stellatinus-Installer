@@ -438,13 +438,18 @@ func cmdInstall(ctx context.Context, d deps, args []string, stdout, stderr io.Wr
 	}
 	pr.say("")
 	pr.say("Installed %s %s: %d file(s) written, %d component(s) already in place. Record: %s", m.App.Name, m.App.Version, files, len(res.Skipped), recPath)
+	program := ""
+	if loc, rel, ok := m.LaunchPath(runtime.GOOS); ok {
+		program = filepath.Join(paths[loc], rel)
+		pr.say("Program: %s", program)
+	}
 	for _, p := range res.Shortcuts {
 		pr.say("Shortcut: %s", p)
 	}
 	for _, n := range res.ShortcutNotes {
 		pr.say("Note: %s", n)
 	}
-	pr.event("result", map[string]any{"ok": true, "exit": exitOK, "record": recPath, "files": files, "skipped": res.Skipped, "shortcuts": res.Shortcuts, "notes": res.ShortcutNotes})
+	pr.event("result", map[string]any{"ok": true, "exit": exitOK, "record": recPath, "files": files, "skipped": res.Skipped, "shortcuts": res.Shortcuts, "notes": res.ShortcutNotes, "program": program})
 	return exitOK
 }
 

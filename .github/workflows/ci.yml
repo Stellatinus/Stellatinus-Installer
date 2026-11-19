@@ -200,8 +200,17 @@ jobs:
         with:
           go-version: "1.26"
           check-latest: true
+      - name: Build the demo program for every system
+        run: |
+          set -eu
+          mkdir -p demobin
+          for target in windows/amd64 windows/arm64 linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
+            os=${target%/*}; arch=${target#*/}
+            ext=""; [ "$os" = windows ] && ext=".exe"
+            GOOS=$os GOARCH=$arch go build -trimpath -ldflags "-s -w" -o "demobin/stellatinus-demo-$os-$arch$ext" ./tools/demoapp
+          done
       - name: Make the demo payload and fill its hashes into the manifest
-        run: go run ./tools/demo --manifest examples/stellatinus-demo.json --out payload
+        run: go run ./tools/demo --manifest examples/stellatinus-demo.json --bin-dir demobin --out payload
       - name: Build and pack for every system
         run: |
           set -eu
@@ -214,7 +223,7 @@ jobs:
             # The packer runs on this machine; any engine can be packed into.
             go run ./cmd/stellatinus-installer pack --engine "$engine" --manifest payload/manifest.json --out "dist/Stellatinus-Demo-Setup-$os-$arch$ext"
           done
-          cp payload/demo-app.zip payload/demo-model.bin dist/
+          cp payload/demo-app-*.zip payload/demo-model.bin dist/
           (cd dist && sha256sum * > SHA256SUMS.txt)
           ls -l dist
       - name: Publish on the rolling pre-release
@@ -225,7 +234,7 @@ jobs:
 
           - `Stellatinus-Demo-Setup-<system>-<arch>` is a fake app packed into a single-file installer: double-click it, or run it with `--help`. It shows what it will do and asks first. `stellatinus-installer-<system>-<arch>` is the plain command line.
           - **Windows** SmartScreen and Defender will warn that the publisher is unknown: choose *More info*, then *Run anyway*. **macOS** Gatekeeper refuses it: make it executable (`chmod +x`), then open it from the context menu (*Open*) once. Both are expected until the installers are signed.
-          - `SHA256SUMS.txt` has the checksum of every file. `demo-app.zip` and `demo-model.bin` are what the demo downloads; do not run them.
+          - `SHA256SUMS.txt` has the checksum of every file. `demo-app-*.zip` and `demo-model.bin` are what the demo downloads; do not run them.
           NOTES
           if ! gh release view test-builds >/dev/null 2>&1; then
             gh release create test-builds --prerelease --title "Test installers (unsigned, rolling)" --notes-file notes.md --target "$GITHUB_SHA"
