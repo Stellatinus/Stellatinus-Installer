@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"unicode/utf8"
@@ -128,7 +129,7 @@ func Dir(p Place, scope string, env Env) (string, error) {
 	case "linux":
 		switch {
 		case p == StartMenu && user:
-			if d := env.get("XDG_DATA_HOME"); d != "" && filepath.IsAbs(d) {
+			if d := env.get("XDG_DATA_HOME"); d != "" && path.IsAbs(d) {
 				return filepath.Join(d, "applications"), nil
 			}
 			v, err := need("HOME")
@@ -177,7 +178,7 @@ func linuxDesktop(env Env) (string, error) {
 		return "", errors.New("the variable HOME is not set")
 	}
 	cfg := env.get("XDG_CONFIG_HOME")
-	if cfg == "" || !filepath.IsAbs(cfg) {
+	if cfg == "" || !path.IsAbs(cfg) {
 		cfg = filepath.Join(home, ".config")
 	}
 	if data, err := env.read(filepath.Join(cfg, "user-dirs.dirs")); err == nil {
@@ -189,7 +190,7 @@ func linuxDesktop(env Env) (string, error) {
 			}
 			val = strings.Trim(val, `"`)
 			val = strings.Replace(val, "$HOME", home, 1)
-			if filepath.IsAbs(val) && !strings.ContainsAny(val, "$`\x00") {
+			if path.IsAbs(val) && !strings.ContainsAny(val, "$`\x00") {
 				return filepath.Clean(val), nil
 			}
 		}
