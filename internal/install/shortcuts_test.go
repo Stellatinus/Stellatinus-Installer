@@ -43,7 +43,7 @@ func newShortcutEnv(t *testing.T, goos string) shortcutEnv {
 	return shortcutEnv{env: e, home: home, vars: vars}
 }
 
-func runShortcuts(t *testing.T, goos string, places ...shortcut.Place) (*Result, shortcutEnv, error, []string) {
+func runShortcuts(t *testing.T, goos string, places ...shortcut.Place) (*Result, shortcutEnv, []string, error) {
 	t.Helper()
 	se := newShortcutEnv(t, goos)
 	before := snapshot(t, se.root)
@@ -55,13 +55,13 @@ func runShortcuts(t *testing.T, goos string, places ...shortcut.Place) (*Result,
 	opt.Shortcuts = places
 	opt.Env = func(k string) string { return se.vars[k] }
 	res, err := Run(context.Background(), m, opt)
-	return res, se, err, before
+	return res, se, before, err
 }
 
 func TestShortcutsAreCreatedRecordedAndRemovedWithTheRest(t *testing.T) {
 	for _, goos := range []string{"linux", "windows"} {
 		t.Run(goos, func(t *testing.T) {
-			res, se, err, _ := runShortcuts(t, goos, shortcut.StartMenu, shortcut.Desktop)
+			res, se, _, err := runShortcuts(t, goos, shortcut.StartMenu, shortcut.Desktop)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -79,7 +79,10 @@ func TestShortcutsAreCreatedRecordedAndRemovedWithTheRest(t *testing.T) {
 				}
 				prog := map[string]string{"linux": "bin/demo", "windows": "bin/Demo.exe"}[goos]
 				want := filepath.Join(se.paths["install"], filepath.FromSlash(prog))
-				if goos == "linux" && !bytes.Contains(data, []byte(`Exec="`+want+`"`)) {
+				// A backslash (a Windows host) is escaped twice in the file: once for
+				// the Exec quoting and once as a string.
+				quoted := strings.ReplaceAll(want, `\`, `\\\\`)
+				if goos == "linux" && !bytes.Contains(data, []byte(`Exec="`+quoted+`"`)) {
 					t.Errorf("the shortcut does not start %s:\n%s", want, data)
 				}
 				if o, ok := res.Record.Owner(p); !ok || o != record.OwnerInstaller {
@@ -193,7 +196,7 @@ func TestAFailedInstallationTakesItsShortcutsAway(t *testing.T) {
 }
 
 func TestTheTaskbarIsAHintNotAShortcut(t *testing.T) {
-	res, se, err, _ := runShortcuts(t, "windows", shortcut.Taskbar)
+	res, se, _, err := runShortcuts(t, "windows", shortcut.Taskbar)
 	if err != nil {
 		t.Fatal(err)
 	}

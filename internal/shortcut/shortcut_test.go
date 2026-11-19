@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"unicode/utf16"
@@ -38,7 +39,9 @@ func TestDirPerSystem(t *testing.T) {
 		{mac, Desktop, "user", "/Users/u/Desktop"},
 	} {
 		got, err := Dir(c.p, c.scope, c.e)
-		if err != nil || got != c.want {
+		// The paths of another system are joined with this host's separator, so
+		// compare without it: the test must hold on Windows runners too.
+		if err != nil || filepath.ToSlash(got) != filepath.ToSlash(c.want) {
 			t.Errorf("%s %s %s: got %q, %v; want %q", c.e.GOOS, c.p, c.scope, got, err, c.want)
 		}
 	}
@@ -70,12 +73,12 @@ func TestLinuxDesktopFollowsUserDirs(t *testing.T) {
 	e.ReadFile = func(string) ([]byte, error) {
 		return []byte("XDG_DOCUMENTS_DIR=\"$HOME/Docs\"\nXDG_DESKTOP_DIR=\"$HOME/Scrivania\"\n"), nil
 	}
-	if got, _ := Dir(Desktop, "user", e); got != "/home/u/Scrivania" {
+	if got, _ := Dir(Desktop, "user", e); filepath.ToSlash(got) != "/home/u/Scrivania" {
 		t.Fatalf("got %q, want the folder user-dirs.dirs names", got)
 	}
 	// A value that leaves the home folder through a variable or a command is not used.
 	e.ReadFile = func(string) ([]byte, error) { return []byte("XDG_DESKTOP_DIR=\"$HOME/$(rm -rf x)\"\n"), nil }
-	if got, _ := Dir(Desktop, "user", e); got != "/home/u/Desktop" {
+	if got, _ := Dir(Desktop, "user", e); filepath.ToSlash(got) != "/home/u/Desktop" {
 		t.Fatalf("got %q, want the default for a value with a substitution", got)
 	}
 }
@@ -114,7 +117,8 @@ func TestWriteNeverOverwrites(t *testing.T) {
 		t.Fatal(err)
 	}
 	// The applications folder was made, and the file is executable and readable.
-	if info, err := os.Stat(path); err != nil || info.Mode().Perm() != 0o755 {
+	// Windows has no permission bits to check.
+	if info, err := os.Stat(path); err != nil || (runtime.GOOS != "windows" && info.Mode().Perm() != 0o755) {
 		t.Fatalf("stat: %v %v", info, err)
 	}
 	// A second write, and a file that someone else made, are left untouched.
