@@ -58,6 +58,7 @@ func cmdRepair(ctx context.Context, d deps, args []string, stdout, stderr io.Wri
 		return pr.fail(exitProblem, nil, err.Error())
 	}
 
+	pr.startLog(recPath, "repair")
 	opt := install.Options{Client: d.client, RecordPath: recPath, Events: pr.progress, Log: func(s string) { pr.event("log", map[string]any{"message": s}) }}
 	problems, checked, err := install.Verify(m, rec, opt)
 	if err != nil {
@@ -93,6 +94,7 @@ func cmdRepair(ctx context.Context, d deps, args []string, stdout, stderr io.Wri
 		return exitProblem
 	}
 
+	pr.commitLog()
 	res, err := install.Repair(ctx, m, rec, opt)
 	if err != nil {
 		// Interrupted, or the record could not be saved: say what is known.

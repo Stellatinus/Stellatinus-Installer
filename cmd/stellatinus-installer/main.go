@@ -205,9 +205,13 @@ func cmdCheck(d deps, args []string, stdout, stderr io.Writer) int {
 		fprintln(stderr, err)
 		return 1
 	}
+	sc := m.Scope
+	if *scope != "" {
+		sc = *scope
+	}
 	paths := map[string]string{}
 	for _, l := range m.Locations {
-		p, err := l.DefaultPath(runtime.GOOS, env)
+		p, err := l.DefaultPathFor(runtime.GOOS, sc, env)
 		if err != nil {
 			fprintln(stderr, err)
 			return 1

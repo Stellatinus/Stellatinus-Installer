@@ -102,6 +102,11 @@ type Location struct {
 	// Default is the proposed path per system ("windows", "linux", "darwin").
 	// ${VAR} is replaced with an environment variable.
 	Default map[string]string `json:"default"`
+	// DefaultMachine is the proposed path per system for an installation for
+	// all users. It is needed, for every system in Default, when the manifest
+	// has scope "machine" or allows it: the per-user folders are the wrong
+	// proposal there.
+	DefaultMachine map[string]string `json:"default_machine,omitempty"`
 	// Required locations cannot be left out.
 	Required bool `json:"required,omitempty"`
 	// Adopt lets the user point at a folder that already holds content; the
@@ -291,17 +296,17 @@ func (m *Manifest) Validate() error {
 		if len(l.Default) == 0 {
 			add("%s.default needs a path for at least one system", p)
 		}
-		for sys, path := range l.Default {
-			if sys != "windows" && sys != "linux" && sys != "darwin" {
-				add("%s.default has an unknown system %q", p, sys)
+		validatePaths(add, p+".default", l.Default)
+		validatePaths(add, p+".default_machine", l.DefaultMachine)
+		if m.Scope == ScopeMachine || m.AllowMachine {
+			for sys := range l.Default {
+				if _, ok := l.DefaultMachine[sys]; !ok {
+					add("%s.default_machine needs a path for %s: this app can be installed for all users, and the per-user folder would be proposed", p, sys)
+				}
 			}
-			if strings.TrimSpace(path) == "" {
-				add("%s.default.%s is empty", p, sys)
-			}
-			for _, part := range strings.FieldsFunc(path, func(r rune) bool { return r == '/' || r == '\\' }) {
-				if part == ".." {
-					add("%s.default.%s must not contain '..'", p, sys)
-					break
+			for sys := range l.DefaultMachine {
+				if _, ok := l.Default[sys]; !ok {
+					add("%s.default_machine has %q, which has no entry in default", p, sys)
 				}
 			}
 		}
@@ -372,13 +377,42 @@ func (m *Manifest) Location(id string) (Location, bool) {
 	return Location{}, false
 }
 
-// DefaultPath returns the proposed path of a location on a system, with
-// ${VAR} replaced using getenv. It fails when no path is given for that system
-// or a variable is not set.
+// validatePaths checks a map of system to default path.
+func validatePaths(add func(string, ...any), where string, paths map[string]string) {
+	for sys, path := range paths {
+		if sys != "windows" && sys != "linux" && sys != "darwin" {
+			add("%s has an unknown system %q", where, sys)
+		}
+		if strings.TrimSpace(path) == "" {
+			add("%s.%s is empty", where, sys)
+		}
+		for _, part := range strings.FieldsFunc(path, func(r rune) bool { return r == '/' || r == '\\' }) {
+			if part == ".." {
+				add("%s.%s must not contain '..'", where, sys)
+				break
+			}
+		}
+	}
+}
+
+// DefaultPath returns the proposed per-user path of a location on a system.
+// See DefaultPathFor.
 func (l Location) DefaultPath(goos string, getenv func(string) string) (string, error) {
-	raw, ok := l.Default[goos]
+	return l.DefaultPathFor(goos, ScopeUser, getenv)
+}
+
+// DefaultPathFor returns the proposed path of a location on a system for a
+// scope, with ${VAR} replaced using getenv. For scope "machine" it uses
+// default_machine and never falls back to the per-user folder. It fails when no
+// path is given for that system and scope or a variable is not set.
+func (l Location) DefaultPathFor(goos, scope string, getenv func(string) string) (string, error) {
+	src := l.Default
+	if scope == ScopeMachine {
+		src = l.DefaultMachine
+	}
+	raw, ok := src[goos]
 	if !ok {
-		return "", fmt.Errorf("location %q has no default path for %s", l.ID, goos)
+		return "", fmt.Errorf("location %q has no default path for %s (scope %s)", l.ID, goos, scope)
 	}
 	var missing string
 	out := os.Expand(raw, func(name string) string {

@@ -88,6 +88,12 @@ Exit status: 0 intact, or repaired; 1 a problem was found and nothing was change
 
 `pack` makes the single-file installer; `register` and `unregister` keep the record true for files an app makes later. Both are explained in [embedding.md](embedding.md). `install` and `check` take no manifest file when run from a packed installer.
 
+## The run log
+
+`install`, `uninstall` and `repair` each write one log per run, in `log/` next to the record (`<config>/Stellatinus/<app id>/log/`), outside every folder the user chooses and outside the install folder, so a removal never takes it (and an uninstall leaves the folder with the logs in it). It is JSON lines named `<UTC time>-<command>.log`: `start` (command and version), `plan` (what the install was asked to do: app, scope, system, folders, answers), the `check` results, `progress`, `log`, `message` (the lines a person sees), `removed` and `not_removed` for an uninstall, and always last a `result` with the exit code and the error. It never holds the contents of files or of the response file beyond its answers. The last 5 logs of an app are kept.
+
+It is written by every run that changes something or fails, also with `--silent`. A plan (`uninstall` without `--yes`, `repair` without `--yes`) and `--dry-run` leave no file. Its path is the last line (`Log: <path>`) and the `log` field of the `result` event. A failure to write it never changes the exit status: it is reported once on standard error and the run goes on. A failure before the app and the record are known (a bad flag, an unreadable manifest) writes none.
+
 ## Exit status
 
 | Code | Meaning | Commands |
@@ -111,7 +117,7 @@ With `--json` every line of standard output is one JSON object with an `event`:
 | `log` | `message` |
 | `plan` | `action`, `path`, `kind`, `size`, `reason` (for `uninstall`) |
 | `problem` | `path`, `kind` (`missing`, `changed`, `conflict`), `component`, `reason`, `fixable` (for `repair`) |
-| `result` | always the last line: `ok`, `exit`, and `error`, `rolled_back`, `record`, `files`, `skipped`, `removed_count`, `kept`, `protected` as they apply |
+| `result` | always the last line: `ok`, `exit`, `log` (the log file, when one is written), and `error`, `rolled_back`, `record`, `files`, `skipped`, `removed_count`, `kept`, `protected` as they apply |
 
 ## Not verified on a real machine
 

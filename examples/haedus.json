@@ -20,6 +20,11 @@
         "windows": "${LOCALAPPDATA}\\Haedus",
         "linux": "${HOME}/.local/share/haedus",
         "darwin": "${HOME}/Applications/Haedus"
+      },
+      "default_machine": {
+        "windows": "${PROGRAMFILES}\\Haedus",
+        "linux": "/opt/haedus",
+        "darwin": "/Applications/Haedus"
       }
     },
     {
@@ -32,6 +37,11 @@
         "windows": "${USERPROFILE}\\Haedus\\Models",
         "linux": "${HOME}/.local/share/haedus-models",
         "darwin": "${HOME}/Library/Application Support/Haedus/Models"
+      },
+      "default_machine": {
+        "windows": "${PROGRAMDATA}\\Haedus\\Models",
+        "linux": "/var/lib/haedus/models",
+        "darwin": "/Library/Application Support/Haedus/Models"
       }
     },
     {
@@ -43,6 +53,11 @@
         "windows": "${USERPROFILE}\\Documents\\Haedus",
         "linux": "${HOME}/Documents/Haedus",
         "darwin": "${HOME}/Documents/Haedus"
+      },
+      "default_machine": {
+        "windows": "${PUBLIC}\\Documents\\Haedus",
+        "linux": "/srv/haedus",
+        "darwin": "/Users/Shared/Haedus"
       }
     }
   ],

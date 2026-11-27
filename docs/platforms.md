@@ -16,7 +16,7 @@ The engine is one static Go binary per system and architecture, with no cgo and 
 
 ## Per user and for all users
 
-**Per user is the default** (*proposed*, applied in the code): it needs no administrator, and an elevated installer started from another administrator account can write shortcuts and data into the wrong profile (a known pitfall, *not verified here*). **All users** (`--scope machine`) is available only if the manifest says `allow_machine`, and then needs an elevated process.
+**Per user is the default** (*proposed*, applied in the code): it needs no administrator, and an elevated installer started from another administrator account can write shortcuts and data into the wrong profile (a known pitfall, *not verified here*). **All users** (`--scope machine`) is available only if the manifest says `allow_machine`, and then needs an elevated process. It proposes the folders of `default_machine`, never the per-user ones.
 
 | | per user | all users |
 |---|---|---|
@@ -39,9 +39,9 @@ The engine is one static Go binary per system and architecture, with no cgo and 
 | Data and settings | a `data` location, `%APPDATA%\<App>` in the examples | `~/.config/<app>` or `~/.local/share/<app>` | `~/Library/Application Support/<App>` |
 | Models and outputs the user may already have | a location with `adopt`, never removed | the same | the same |
 | The installation record | see the table above | | |
-| Installer logs | **none yet**: the output of the command (`--json` for scripts) is the log, and the record says what was made | | |
+| Installer logs | `log/` next to the record, the last 5 runs, kept when an app is removed ([cli.md](cli.md#the-run-log)) | the same | the same |
 
-The examples in [`examples/`](../examples) show one choice per adopter; the manifest decides, and a test requires that the default folders of an app do not overlap on any system. Nothing is ever written outside the folders the user chose, the record's folder and the shortcut folders above.
+The examples in [`examples/`](../examples) show one choice per adopter; the manifest decides, and a test requires that the default folders of an app do not overlap on any system, for each scope. Nothing is ever written outside the folders the user chose, the record's folder and the shortcut folders above.
 
 ## A machine with no display
 

@@ -43,7 +43,7 @@ func cmdInstallEmbedded(ctx context.Context, d deps, stdout, stderr io.Writer) i
 	}
 	// Say what "the defaults" are before asking, so the answer means something.
 	for _, l := range m.Locations {
-		if p, err := l.DefaultPath(runtime.GOOS, env); err == nil {
+		if p, err := l.DefaultPathFor(runtime.GOOS, m.Scope, env); err == nil {
 			fprintf(stdout, "  %s: %s\n", m.Text("", "location."+l.ID+".label"), p)
 		}
 	}

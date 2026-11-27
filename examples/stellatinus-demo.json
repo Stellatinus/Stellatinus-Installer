@@ -20,6 +20,11 @@
         "windows": "${LOCALAPPDATA}\\StellatinusDemo",
         "linux": "${HOME}/.local/share/stellatinus-demo",
         "darwin": "${HOME}/Applications/StellatinusDemo"
+      },
+      "default_machine": {
+        "windows": "${PROGRAMFILES}\\StellatinusDemo",
+        "linux": "/opt/stellatinus-demo",
+        "darwin": "/Applications/StellatinusDemo"
       }
     },
     {
@@ -32,6 +37,11 @@
         "windows": "${USERPROFILE}\\Documents\\StellatinusDemo\\Models",
         "linux": "${HOME}/.local/share/stellatinus-demo-models",
         "darwin": "${HOME}/Documents/StellatinusDemo/Models"
+      },
+      "default_machine": {
+        "windows": "${PROGRAMDATA}\\StellatinusDemo\\Models",
+        "linux": "/var/lib/stellatinus-demo/models",
+        "darwin": "/Library/Application Support/StellatinusDemo/Models"
       }
     },
     {
@@ -43,6 +53,11 @@
         "windows": "${USERPROFILE}\\Documents\\StellatinusDemo\\Results",
         "linux": "${HOME}/Documents/StellatinusDemoResults",
         "darwin": "${HOME}/Documents/StellatinusDemo/Results"
+      },
+      "default_machine": {
+        "windows": "${PUBLIC}\\Documents\\StellatinusDemo\\Results",
+        "linux": "/srv/stellatinus-demo",
+        "darwin": "/Users/Shared/StellatinusDemo/Results"
       }
     }
   ],

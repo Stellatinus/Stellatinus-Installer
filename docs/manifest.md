@@ -48,6 +48,7 @@ The folders the user chooses. Exactly one has `kind: "install"`.
 | `label` | yes | shown in the window |
 | `kind` | yes | `install`, `models`, `output` or `data` |
 | `default` | yes | the proposed path per system: `windows`, `linux`, `darwin`. `${VAR}` is replaced with an environment variable; `..` is not allowed |
+| `default_machine` | when `scope` is `machine` or `allow_machine` is set | the same, for an installation for all users (`--scope machine`), for every system in `default`. `validate` fails without it, and the per-user folder is never proposed instead. Variables such as `${PROGRAMFILES}` and `${PROGRAMDATA}` are read from the environment |
 | `required` | no | cannot be left out |
 | `adopt` | no | the user may point at a folder that already holds content, for example AI models downloaded earlier. The installer uses it where it is, never copies it and **never deletes it** |
 | `on_uninstall` | no | `remove`, `keep` or `ask` (default) |
@@ -109,11 +110,11 @@ The program a shortcut starts: `location` (one of the locations) and `path`, a p
 
 ## Not in the format yet
 
-The update source and trust anchor ([#7](https://github.com/Stellatinus/Stellatinus-Installer/issues/7), [#9](https://github.com/Stellatinus/Stellatinus-Installer/issues/9)), autostart and services ([#33](https://github.com/Stellatinus/Stellatinus-Installer/issues/33)), components as `.tar.gz` ([#35](https://github.com/Stellatinus/Stellatinus-Installer/issues/35)), per-system default folders for an all-users install ([#10](https://github.com/Stellatinus/Stellatinus-Installer/issues/10)), and app-specific checks and hooks (not planned until an adopter needs them).
+The update source and trust anchor ([#7](https://github.com/Stellatinus/Stellatinus-Installer/issues/7), [#9](https://github.com/Stellatinus/Stellatinus-Installer/issues/9)), autostart and services ([#33](https://github.com/Stellatinus/Stellatinus-Installer/issues/33)), components as `.tar.gz` ([#35](https://github.com/Stellatinus/Stellatinus-Installer/issues/35)), and app-specific checks and hooks (not planned until an adopter needs them).
 
 ## Examples
 
-[`examples/`](../examples) has a manifest for each adopter, and `stellatinus-demo.json`, the fake app of the [test installers](../README.md#try-it-without-building) (its hashes are filled in by `tools/demo` in CI): `haedus.json`, `mira.json` (a port written to `config.json`, settings kept on removal), `polaris.json` and `regulus-desktop.json` (illustrative: those apps do not have packages yet), and `minimal.json`. Their URLs and hashes are fake (`example.invalid`; the demo points at the test-builds release). Every one is checked by the tests: valid, fully translated to Italian, and with default folders that do not overlap on any system.
+[`examples/`](../examples) has a manifest for each adopter, and `stellatinus-demo.json`, the fake app of the [test installers](../README.md#try-it-without-building) (its hashes are filled in by `tools/demo` in CI): `haedus.json`, `mira.json` (a port written to `config.json`, settings kept on removal), `polaris.json` and `regulus-desktop.json` (illustrative: those apps do not have packages yet), and `minimal.json`. Their URLs and hashes are fake (`example.invalid`; the demo points at the test-builds release). Every one is checked by the tests: valid, fully translated to Italian, and with default folders that do not overlap on any system, for each scope.
 
 ## Anything an app adds later
 
