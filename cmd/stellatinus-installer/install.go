@@ -318,7 +318,7 @@ func cmdInstall(ctx context.Context, d deps, args []string, stdout, stderr io.Wr
 
 	paths := map[string]string{}
 	for _, l := range m.Locations {
-		p, err := l.DefaultPath(runtime.GOOS, env)
+		p, err := l.DefaultPathFor(runtime.GOOS, sc, env)
 		if err != nil {
 			return pr.fail(exitProblem, nil, err.Error())
 		}

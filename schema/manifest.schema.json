@@ -162,6 +162,22 @@
             "minLength": 1
           }
         },
+        "default_machine": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "enum": [
+              "windows",
+              "linux",
+              "darwin"
+            ]
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "The proposed path per system for an installation for all users. Required for every system in default when scope is machine or allow_machine is set."
+        },
         "required": {
           "type": "boolean"
         },

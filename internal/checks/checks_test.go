@@ -222,7 +222,8 @@ func TestExampleDefaultsDoNotOverlap(t *testing.T) {
 		t.Fatalf("no examples: %v", err)
 	}
 	env := func(k string) string {
-		return map[string]string{"HOME": "/home/u", "USERPROFILE": "/win/u", "LOCALAPPDATA": "/win/u/AppData/Local"}[k]
+		return map[string]string{"HOME": "/home/u", "USERPROFILE": "/win/u", "LOCALAPPDATA": "/win/u/AppData/Local",
+			"PROGRAMFILES": "/win/PF", "PROGRAMDATA": "/win/PD", "PUBLIC": "/win/Public"}[k]
 	}
 	for _, f := range files {
 		m, err := manifest.Load(f)
@@ -230,18 +231,20 @@ func TestExampleDefaultsDoNotOverlap(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, goos := range []string{"windows", "linux", "darwin"} {
-			paths := map[string]string{}
-			var order []string
-			for _, l := range m.Locations {
-				p, err := l.DefaultPath(goos, env)
-				if err != nil {
-					continue
+			for _, scope := range []string{manifest.ScopeUser, manifest.ScopeMachine} {
+				paths := map[string]string{}
+				var order []string
+				for _, l := range m.Locations {
+					p, err := l.DefaultPathFor(goos, scope, env)
+					if err != nil {
+						continue
+					}
+					paths[l.ID] = strings.ReplaceAll(p, `\`, "/") // judge a Windows path on any system
+					order = append(order, l.ID)
 				}
-				paths[l.ID] = strings.ReplaceAll(p, `\`, "/") // judge a Windows path on any system
-				order = append(order, l.ID)
-			}
-			if r := Overlap(paths, order); !r.Passed() {
-				t.Errorf("%s on %s: %s", filepath.Base(f), goos, r.Detail)
+				if r := Overlap(paths, order); !r.Passed() {
+					t.Errorf("%s on %s (%s): %s", filepath.Base(f), goos, scope, r.Detail)
+				}
 			}
 		}
 	}

@@ -408,3 +408,43 @@ func TestLaunchIsChecked(t *testing.T) {
 		}
 	}
 }
+
+func TestDefaultPathForScope(t *testing.T) {
+	l := Location{ID: "install",
+		Default:        map[string]string{"linux": "${HOME}/x"},
+		DefaultMachine: map[string]string{"linux": "/opt/x"}}
+	env := func(k string) string { return "/home/u" }
+	if got, err := l.DefaultPathFor("linux", ScopeMachine, env); err != nil || got != "/opt/x" {
+		t.Fatalf("machine = %q, %v", got, err)
+	}
+	if got, err := l.DefaultPathFor("linux", ScopeUser, env); err != nil || got != "/home/u/x" {
+		t.Fatalf("user = %q, %v", got, err)
+	}
+	l.DefaultMachine = nil
+	if _, err := l.DefaultPathFor("linux", ScopeMachine, env); err == nil {
+		t.Fatal("the per-user folder was proposed for an all-users installation")
+	}
+}
+
+func TestValidateRequiresMachineDefaults(t *testing.T) {
+	data, err := os.ReadFile("../../examples/haedus.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var raw map[string]any
+	if err := json.Unmarshal(data, &raw); err != nil {
+		t.Fatal(err)
+	}
+	loc := raw["locations"].([]any)[0].(map[string]any)
+	delete(loc["default_machine"].(map[string]any), "darwin")
+	bad, _ := json.Marshal(raw)
+	_, err = Parse(strings.NewReader(string(bad)))
+	if err == nil || !strings.Contains(err.Error(), "default_machine needs a path for darwin") {
+		t.Fatalf("expected a missing default_machine, got %v", err)
+	}
+	raw["allow_machine"] = false
+	ok, _ := json.Marshal(raw)
+	if _, err := Parse(strings.NewReader(string(ok))); err != nil {
+		t.Fatalf("a per-user app needs no default_machine: %v", err)
+	}
+}
