@@ -182,7 +182,20 @@ type printer struct {
 	json, silent   bool
 	enc            *json.Encoder
 	seen           map[string]int // last percent printed for each component
+	log            *runLog        // nil until the command knows where the record lives
 }
+
+// startLog begins the run log next to the record. Nothing is written until
+// commitLog (or a failure), so a plan or a dry run leaves no file.
+func (p *printer) startLog(recPath, command string) {
+	p.log = newRunLog(recPath, command, func(msg string) { fprintln(p.stderr, msg) })
+	p.log.add("start", map[string]any{"command": command, "version": version})
+}
+
+func (p *printer) commitLog() { p.log.commit() }
+
+// logLine is the log path to show, or "".
+func (p *printer) logLine() string { return p.log.Path() }
 
 func newPrinter(stdout, stderr io.Writer, asJSON, silent bool) *printer {
 	p := &printer{stdout: stdout, stderr: stderr, json: asJSON, silent: silent, seen: map[string]int{}}
@@ -194,6 +207,14 @@ func newPrinter(stdout, stderr io.Writer, asJSON, silent bool) *printer {
 
 // event writes one JSON line (only in JSON mode).
 func (p *printer) event(kind string, fields map[string]any) {
+	p.log.add(kind, fields)
+	if kind == "result" {
+		if path := p.logLine(); path != "" {
+			fields["log"] = path
+			p.say("Log: %s", path)
+		}
+		p.log.close()
+	}
 	if !p.json {
 		return
 	}
@@ -203,6 +224,9 @@ func (p *printer) event(kind string, fields map[string]any) {
 
 // say writes a line for people, unless silent or in JSON mode.
 func (p *printer) say(format string, a ...any) {
+	if strings.TrimSpace(format) != "" && !strings.HasPrefix(format, "Log: ") {
+		p.log.add("message", map[string]any{"text": fmt.Sprintf(format, a...)})
+	}
 	if p.silent || p.json {
 		return
 	}
@@ -210,20 +234,42 @@ func (p *printer) say(format string, a ...any) {
 }
 
 // fail writes an error to stderr (in JSON mode, as an event too).
+// eventNoLog writes a JSON line that is already in the log.
+func (p *printer) eventNoLog(kind string, fields map[string]any) {
+	if !p.json {
+		return
+	}
+	fields["event"] = kind
+	_ = p.enc.Encode(fields)
+}
+
 func (p *printer) fail(code int, rolledBack *bool, msg string) int {
+	p.commitLog()
+	p.log.add("result", map[string]any{"ok": false, "exit": code, "error": msg})
+	path := p.logLine()
+	p.log.close()
 	if p.json {
 		f := map[string]any{"ok": false, "exit": code, "error": msg}
 		if rolledBack != nil {
 			f["rolled_back"] = *rolledBack
 		}
-		p.event("result", f)
+		if path != "" {
+			f["log"] = path
+		}
+		p.eventNoLog("result", f)
 	} else {
 		fprintln(p.stderr, msg)
+		if path != "" {
+			fprintln(p.stderr, "Log: "+path)
+		}
 	}
 	return code
 }
 
 func (p *printer) progress(ev install.Event) {
+	if ev.Phase != install.PhaseDownload || ev.Done == 0 || ev.Done == ev.Total {
+		p.log.add("progress", map[string]any{"phase": ev.Phase, "component": ev.Component, "file": ev.File, "done": ev.Done, "total": ev.Total})
+	}
 	if p.json {
 		p.event("progress", map[string]any{
 			"phase": ev.Phase, "component": ev.Component, "label": ev.Label, "file": ev.File,
@@ -354,6 +400,8 @@ func cmdInstall(ctx context.Context, d deps, args []string, stdout, stderr io.Wr
 	if err != nil {
 		return pr.fail(exitProblem, nil, err.Error())
 	}
+	pr.startLog(recPath, "install")
+	pr.log.add("plan", map[string]any{"app": m.App.ID, "version": m.App.Version, "scope": sc, "os": runtime.GOOS, "arch": runtime.GOARCH, "paths": paths, "answers": answers, "dry_run": *dry})
 	// A shortcut the manifest does not allow is refused before the checks run.
 	if err := install.CheckShortcuts(m, places, runtime.GOOS); err != nil {
 		return pr.fail(exitProblem, nil, err.Error())
@@ -406,6 +454,7 @@ func cmdInstall(ctx context.Context, d deps, args []string, stdout, stderr io.Wr
 		return exitOK
 	}
 
+	pr.commitLog()
 	opt := install.Options{
 		Client: d.client, Paths: paths, Scope: sc, RecordPath: recPath, Answers: answers, Shortcuts: places,
 		Events: pr.progress,
@@ -489,6 +538,7 @@ func cmdUninstall(args []string, stdout, stderr io.Writer) int {
 		return pr.fail(exitProblem, nil, err.Error())
 	}
 
+	pr.startLog(recPath, "uninstall")
 	c := record.Choices{KeepLocation: map[string]bool{}, KeepPath: map[string]bool{}}
 	for _, l := range keepLoc {
 		c.KeepLocation[l] = true
@@ -510,9 +560,14 @@ func cmdUninstall(args []string, stdout, stderr io.Writer) int {
 		return exitOK
 	}
 
+	pr.commitLog()
 	rep := r.Apply(items)
 	for _, p := range rep.Removed {
 		r.Remove(p)
+		pr.log.add("removed", map[string]any{"path": p})
+	}
+	for _, f := range rep.Failed {
+		pr.log.add("not_removed", map[string]any{"path": f.Path, "error": f.Err.Error()})
 	}
 	if len(rep.Failed) > 0 {
 		_ = r.Save(recPath) // what is left stays on record, so the job can be finished
